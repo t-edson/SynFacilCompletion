@@ -5,11 +5,11 @@ Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus
 
 This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and include all his options, and others special for defining the code-completion feature.
 
-For to understand, how this library work, it's necessary to know first, how the SynFacilSyn library works.
+For to understand, how this library works, it's necessary to know first, how the SynFacilSyn library works.
  
 In the XML file, it's added the label <COMPLETION> for defining a list of words for using when writing code on the editor.
 
-Using in a program.
+# Using in a program.
 
 There are 3 units for to include  when using this library:
 
@@ -34,7 +34,7 @@ begin
 end;
 ```
 
-The completion menu will open, when pressing Ctrl+Space, but if we want to auto-open the xomplwtion mennu, when pressing a key, we must intercept the KeyUp() event, of the SynEdit:
+The completion menu will open, when pressing Ctrl+Space, but if we want to auto-open the completion mennu, when pressing a key, we must intercept the KeyUp() event, of the SynEdit:
 
 ```
 procedure TForm1.edKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -70,18 +70,25 @@ The next XML file, define three words for the compeltionmenu:
 </Language>
 ```
 
-It's possible to use too, the list of Keywords like words for the compeltion menu:
+It's possible to use too, the list of Keywords (or another group) like words for the completion menu:
 
 ```
 <?xml version="1.0"?>
 <Language name="Pascal" ext="pas">
-  <completion>
+  <Completion> 
+    <Include Attribute="Keyword"></Include>
+  </Completion>
+  <Identifiers>
+    <Keyword>
     var
     procedure
     function 
-  </completion>
+    </Keyword>
+  </Identifiers>
 </Language>
 ```
+
+In this way, we avoid to repeat all the list of keywords again.
 
 This library is still in a early state, and can change a lot in the future.
 
