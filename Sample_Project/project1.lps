@@ -136,9 +136,8 @@
         <Filename Value="..\SynFacilHighlighter.pas"/>
         <UnitName Value="SynFacilHighlighter"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="2703"/>
-        <CursorPos X="16" Y="2707"/>
-        <FoldState Value=" T4902 T5C01011 TMq0]A4]ACYEI3 T8jF2T3 pkCl22M[a53pO0H33]t0qIJC735 T6q205O piX)421I THu74x3]H1$A2n p0wH49]zF~Q225)"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="16"/>
         <Bookmarks Count="1">
           <Item0 X="1" Y="1" ID="1"/>
@@ -227,8 +226,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="6" Y="15"/>
+        <TopLine Value="31"/>
+        <CursorPos X="43" Y="50"/>
         <FoldState Value=" T3je0N3 pjB]9D1152215$"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
@@ -280,19 +279,19 @@
       </Position10>
       <Position11>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="204" Column="21" TopLine="237"/>
+        <Caret Line="622" Column="1" TopLine="590"/>
       </Position11>
       <Position12>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="622" Column="1" TopLine="590"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position12>
       <Position13>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="665" Column="1" TopLine="580"/>
       </Position13>
       <Position14>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="665" Column="1" TopLine="580"/>
+        <Caret Line="50" Column="43" TopLine="31"/>
       </Position14>
     </JumpHistory>
   </ProjectSession>

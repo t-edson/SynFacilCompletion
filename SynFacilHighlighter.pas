@@ -1,6 +1,12 @@
-{                               TSynFacilSyn 0.9.1b
+{                               TSynFacilSyn 0.9.1
 * Se incluye el campo "orig" en el registro TTokEspec, para facilitar el poder recuperar
 el identificador especial tal cual se define.
+* Se agrega la etiqueta "Style" como forma opcional de definir el estilo del texto de los
+atributos.
+* Se agregan las etiqueta "FrameEdg" y "FrameSty" para definir el tipo de borde del texto
+de los atributos.
+* Se permite indicar el color directamente como nombre en los parámetros que admiten
+color en el archivo XML.
 
                                     Por Tito Hinostroza  11/08/2014 - Lima Perú
 }
@@ -9,7 +15,7 @@ unit SynFacilHighlighter;
 interface
 uses
   Classes, SysUtils, Graphics, SynEditHighlighter, DOM, XMLRead,
-  Dialogs, Fgl, Lazlogger, SynEditHighlighterFoldBase, LCLIntf;
+  Dialogs, Fgl, Lazlogger, SynEditHighlighterFoldBase, SynEditTypes, LCLIntf;
 const
   COL_TRANSPAR = $FDFEFF;  //color transparente
 type
@@ -828,6 +834,32 @@ begin
         EsHexa(copy(cad,4,2),g);
         EsHexa(copy(cad,6,2),b);
         Result.col:=RGB(r,g,b);
+      end else begin  //constantes de color
+        case UpCase(cad) of
+        'WHITE'      : Result.col:=rgb($FF,$FF,$FF);
+        'RED'        : Result.col:=rgb($FF,$00,$00);
+        'GREEN'      : Result.col:=rgb($00,$FF,$00);
+        'BLUE'       : Result.col:=rgb($00,$00,$FF);
+        'MAGENTA'    : Result.col:=rgb($FF,$00,$FF);
+        'CYAN'       : Result.col:=rgb($00,$FF,$FF);
+        'YELLOW'     : Result.col:=rgb($FF,$FF,$00);
+        'BLACK'      : Result.col:=rgb($00,$00,$00);
+        'AQUA'       : Result.col:=rgb($70,$DB,$93);
+        'BLUE VIOLET': Result.col:=rgb($9F,$5F,$9F);
+        'BRASS'      : Result.col:=rgb($B5,$A6,$42);
+        'BRIGHT GOLD': Result.col:=rgb($D9,$D9,$19);
+        'BROWN'      : Result.col:=rgb($A6,$2A,$2A);
+        'BRONZE'     : Result.col:=rgb($8C,$78,$53);
+        'COPPER'     : Result.col:=rgb($B8,$73,$33);
+        'CORAL'      : Result.col:=rgb($FF,$7F,$00);
+        'GRAY'       : Result.col:=rgb($C0,$C0,$C0);
+        'LIME'       : Result.col:=rgb($32,$CD,$32);
+        'MAROON'     : Result.col:=rgb($8E,$23,$6B);
+        'NAVY'       : Result.col:=rgb($23,$23,$8E);
+        'SILVER'     : Result.col:=rgb($E6,$E8,$FA);
+        'VIOLET'     : Result.col:=rgb($4F,$2F,$4F);
+        'VIOLET RED' : Result.col:=rgb($CC,$32,$99);
+        end;
       end;
     end;
   end;
@@ -892,6 +924,9 @@ var
   tStyItal: TFaXMLatrib;
   tStyUnder: TFaXMLatrib;
   tStyStrike: TFaXMLatrib;
+  tStyle: TFaXMLatrib;
+  tFrameEdg: TFaXMLatrib;
+  tFrameSty: TFaXMLatrib;
 begin
   hayIDENTIF := false;
   haySIMBOLO := false;
@@ -988,15 +1023,19 @@ begin
      end else if nombre = 'ATTRIBUTE' then begin
 //       haySIMBOLO := true;      //hay definición de símbolos
        ////////// Lee atributos //////////
-       tName   := LeeAtrib(nodo,'Name');
-       tBackCol:= LeeAtrib(nodo,'BackCol');
-       tForeCol:= LeeAtrib(nodo,'ForeCol');
+       tName    := LeeAtrib(nodo,'Name');
+       tBackCol := LeeAtrib(nodo,'BackCol');
+       tForeCol := LeeAtrib(nodo,'ForeCol');
        tFrameCol:= LeeAtrib(nodo,'FrameCol');
-       tStyBold:= LeeAtrib(nodo,'Bold');
-       tStyItal:= LeeAtrib(nodo,'Italic');
+       tFrameEdg:= LeeAtrib(nodo,'FrameEdg');
+       tFrameSty:= LeeAtrib(nodo,'FrameSty');
+       tStyBold := LeeAtrib(nodo,'Bold');
+       tStyItal := LeeAtrib(nodo,'Italic');
        tStyUnder:= LeeAtrib(nodo,'Underline');
-       tStyStrike:= LeeAtrib(nodo,'StrikeOut');
-       if ValidarAtribs(nodo, 'Name BackCol ForeCol FrameCol Bold Italic Underline StrikeOut') then
+       tStyStrike:=LeeAtrib(nodo,'StrikeOut');
+       tStyle   := LeeAtrib(nodo,'Style');
+       if ValidarAtribs(nodo, 'Name BackCol ForeCol FrameCol FrameEdg FrameSty '+
+                              'Bold Italic Underline StrikeOut Style') then
          break; //valida
        ////////// cambia atributo //////////
        if IsAttributeName(tName.val)  then begin
@@ -1012,6 +1051,22 @@ begin
           if tBackCol.hay then Atrib.Background:=tBackCol.col;
           if tForeCol.hay then Atrib.Foreground:=tForeCol.col;
           if tFrameCol.hay then Atrib.FrameColor:=tFrameCol.col;
+          if tFrameEdg.hay then begin
+            case UpCase(tFrameEdg.val) of
+            'AROUND':Atrib.FrameEdges:=sfeAround;
+            'BOTTOM':Atrib.FrameEdges:=sfeBottom;
+            'LEFT':  Atrib.FrameEdges:=sfeLeft;
+            'NONE':  Atrib.FrameEdges:=sfeNone;
+            end;
+          end;
+          if tFrameSty.hay then begin
+            case UpCase(tFrameSty.val) of
+            'SOLID': Atrib.FrameStyle:=slsSolid;
+            'DASHED':Atrib.FrameStyle:=slsDashed;
+            'DOTTED':Atrib.FrameStyle:=slsDotted;
+            'WAVED': Atrib.FrameStyle:=slsWaved;
+            end;
+          end;
           if tStyBold.hay then begin  //negrita
              if tStyBold.bol then Atrib.Style:=Atrib.Style+[fsBold]
              else Atrib.Style:=Atrib.Style-[fsBold];
@@ -1027,6 +1082,13 @@ begin
           if tStyStrike.hay then begin //tachado
              if tStyStrike.bol then Atrib.Style:=Atrib.Style+[fsStrikeOut]
              else Atrib.Style:=Atrib.Style-[fsStrikeOut];
+          end;
+          if tStyle.hay then begin  //forma alternativa
+            Atrib.Style:=Atrib.Style-[fsBold]-[fsItalic]-[fsUnderline]-[fsStrikeOut];
+            if Pos('b', tStyle.val)<>0 then Atrib.Style:=Atrib.Style+[fsBold];
+            if Pos('i', tStyle.val)<>0 then Atrib.Style:=Atrib.Style+[fsItalic];
+            if Pos('u', tStyle.val)<>0 then Atrib.Style:=Atrib.Style+[fsUnderline];
+            if Pos('s', tStyle.val)<>0 then Atrib.Style:=Atrib.Style+[fsStrikeOut];
           end;
        end;
      end;
