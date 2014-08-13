@@ -1,5 +1,5 @@
 {
-SynFacilCompletion 0.1b
+SynFacilCompletion 0.1
 ======================
 Por Tito Hinostroza 06/08/2014.
 Unidad que expande al resaltador TSynFacilSyn, para que pueda soportar configuraiones
