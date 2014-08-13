@@ -9,7 +9,7 @@ For to understand, how this library works, it's necessary to know first, how the
  
 In the XML file, it's added the label <COMPLETION> for defining a list of words for using when writing code on the editor.
 
-# Using in a program.
+## Using in a program.
 
 There are 3 units for to include  when using this library:
 
