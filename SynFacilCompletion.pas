@@ -5,7 +5,7 @@ Por Tito Hinostroza 14/08/2014
 * Se creó el método UTF8KeyPress(), para poder capturar las teclas pulsadas en código
 ASCII y poder decidir mejor, cuándo abrir la lista de completado.
 * Se crean las variables vKey y utKey, para capturar las teclas pulsadas.
-* Se quita la "decisión de abrir el manú" a KeyUp(), y se le pasa a OnExecute()
+* Se quita la "decisión de abrir el menú" a KeyUp(), y se le pasa a OnExecute()
 para poder decidir si abrir o no la lista, después de explorar el entorno.
 * Se cambia SynCompeltionQ, de modo que sea lo más parecido a SynCompletion de la LCL.
 para ello se movieron algunos métodos y propiedades a esta unidad. Ahora SynCompletionQ

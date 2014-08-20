@@ -1,6 +1,6 @@
 {
-Versión modificada de SynCompeltion, que se adapta para trabajar con la unidad
-SynFacilCompletion. Las diferecnias son:
+Versión modificada de SynCompletion, que se adapta para trabajar con la unidad
+SynFacilCompletion. Las diferencias son:
 * Se modifica Execute(), para que no reemplace automáticamente, cuando hay un solo
 ítem en la lista de completado.
 }
