@@ -39,7 +39,12 @@ The completion menu will open, when pressing Ctrl+Space, but if we want to auto-
 ```
 procedure TForm1.edKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  hlt.KeyUp(Key, Shift);
+  hlt.KeyUp(Sender, Key, Shift);
+end;
+
+procedure TForm1.ed1UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
+begin
+  hlt.UTF8KeyPress(Sender, UTF8Key);
 end;
 ```
 
@@ -67,6 +72,9 @@ The next XML file, define three words for the compeltionmenu:
     procedure
     function 
   </completion>
+  
+  ...
+  
 </Language>
 ```
 
