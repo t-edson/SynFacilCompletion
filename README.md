@@ -1,11 +1,11 @@
-SynFacilCompletion
-===================
+SynFacilCompletion 0.4
+======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
 
 This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and include all his options, and others special for defining the code-completion feature.
 
-For to understand, how this library works, it's necessary to know first, how the SynFacilSyn library works.
+This library works in the same way that the SynFacilSyn library works. It uses a XML file for to define the syntax, and additionally, the words for the completion code.
  
 In the XML file, it's added the label <COMPLETION> for defining a list of words for using when writing code on the editor.
 
@@ -62,7 +62,7 @@ For to close the window of the completion menu, we must to call to the method:  
 
 In the XML file, we must include the list of word for to use in the completion menu. This list must be included in the label <COMPLETION>. 
 
-The next XML file, define three words for the compeltionmenu:
+The next XML file, define three words for the completion menu:
 
 ```
 <?xml version="1.0"?>
@@ -98,5 +98,5 @@ It's possible to use too, the list of Keywords (or another group) like words for
 
 In this way, we avoid to repeat all the list of keywords again.
 
-This library is still in a early state, and can change a lot in the future.
+This library is still in a early state of development, and could change a lot in the future.
 

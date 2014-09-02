@@ -20,6 +20,7 @@
 "#include &lt;stlib.h&gt;"
 "#include &lt;string.h&gt;"
 "#include &lt;time.h&gt;"
+"void main(){&#x0D;&#x0D;}"
 	</List>
   </Completion>
   <Attribute Name="Keyword" Style="b"> </Attribute>

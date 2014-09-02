@@ -1,21 +1,15 @@
 {
-SynFacilCompletion 0.3
+SynFacilCompletion 0.4b
 ======================
 Por Tito Hinostroza 14/08/2014
-* Se creó el método UTF8KeyPress(), para poder capturar las teclas pulsadas en código
-ASCII y poder decidir mejor, cuándo abrir la lista de completado.
-* Se crean las variables vKey y utKey, para capturar las teclas pulsadas.
-* Se quita la "decisión de abrir el menú" a KeyUp(), y se le pasa a OnExecute()
-para poder decidir si abrir o no la lista, después de explorar el entorno.
-* Se cambia SynCompeltionQ, de modo que sea lo más parecido a SynCompletion de la LCL.
-para ello se movieron algunos métodos y propiedades a esta unidad. Ahora SynCompletionQ
-es casi el mismo código que SynCompletion, solo deshabilitando la opción de
-"autoreemplazo" de palabra, cuando se tiene una sola opción.
-* Se ha reordenado muchas rutinas para aceptar las funcionalidades del anterior
-SynCOmpeltionQ.
-* Se cambia completamente la lógica de MiraEntornoCursor(). Ya no se diferecnia el
-estado "En medio" y "Al final" de un identifiacdor.
-* Se mejora la sintaxis de la etiqueta <COMPLETION>. Se agrega la etiqueta <LIST>
+* Se corrigió una interferencia con el evento OnKeyUp().
+* Se ponen diversas propiedades privadas a Protected, para poder acceder a ellas.
+* Se ponen los métodos AddCompItem() y AddCompItemL(), como públicos para facilitar
+agregar palabras para autocompletado, usando código en lugar del archivo XML.
+* Se hace pública la propiedad "Range", para facilitar la implementación de
+analizadores léxicos.
+* Se incluye la propiedad "state" y se define el tipo "TFaLexerState", para
+facilitar la implementación de analizadores léxicos.
 
 Descripción
 ============
@@ -37,11 +31,16 @@ begin
   hlt.SelectEditor(SynEdit1);  //assign to editor
 end;
 
-Luego se debe interceptar el evento KeyUp, del SynEdit:
+Luego se debe interceptar los evento KeyUp y UTF8KeyPress, del SynEdit:
 
-procedure TForm1.edKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+procedure TForm1.SynEdit1KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  hlt.KeyUp(Key, Shift);
+  hlt.KeyUp(Sender, Key, Shift);
+end;
+
+procedure TForm1.SynEdit1UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
+begin
+  hlt.UTF8KeyPress(Sender, UTF8Key);
 end;
 
 Y se debe terminar correctamente:
@@ -77,6 +76,21 @@ type
 //    casesen: boolean;     //indica si es sensible a la caja
   end;
 
+  //Permite leer el estado actual del resaltador. Considera la posición actual de la
+  //exploración y el estado del rango, NO CONSIDERA el estado de los bloques de plegado.
+  TFaLexerState = record
+    //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
+    fLine      : PChar;         //puntero a línea de trabajo.
+    tamLin     : integer;       //tamaño de línea actual
+    //propiedades que van cambiando conforme se avanza en la exploración de la línea
+    posTok     : integer;       //para identificar el ordinal del token en una línea
+    BlkToClose : TFaSynBlock;   //bandera-variable para posponer el cierre de un bloque
+    posIni     : Integer;       //índice a inicio de token
+    posFin     : Integer;       //índice a siguiente token
+    fRange     : ^TTokEspec;    //para trabajar con tokens multilínea
+    fTokenID   : TSynHighlighterAttributes;  //Id del token actual
+  end;
+
   TCompletItems = array of TCompletItem;
   //Posiciones de cursor en el editor
   TPosicCursor=( pcDesconocido,    //posición desconocida
@@ -95,8 +109,12 @@ type
     procedure OnExecute(Sender: TObject);
     procedure FormUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
   private
+    function GetState: TFaLexerState;
+    procedure SetState(state: TFaLexerState);
+  protected
     ed: TSynEdit;  //referencia interna al editor
     MenuComplet: TSynCompletion;   //menú contextual
+    AllItems  : TCompletItems; //lista de todas las palabras disponibles para el completado
     AvailItems : TStringList;  {Lista de palabras disponible para cargar en el menú de
                                 auto-completado}
     PosiCursor: TPosicCursor;  //Posición del cursor
@@ -114,18 +132,13 @@ type
     CaseSensComp: boolean;     //Uso de caja, en autocompletado
     utKey    : TUTF8Char;      //tecla pulsada
     vKey     : word;           //código de tecla virtual
-    procedure AddCompItem(item, content: string; blk: TFaSynBlock);
-    procedure AddCompItemL(list: string; blk: TFaSynBlock);
-    function CierraVentComplet: boolean;
+    SpecIdentifiers: TArrayTokEspec;
+    function CheckForClose: boolean;
     function EsIdentif(const tok: TFaTokInfo): boolean;
     procedure FillCompletMenuFilteredBy(str: string);
     procedure OpenCompletionWindow;
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
-  protected
-    SpecIdentifiers: TArrayTokEspec;
-    //lista para completado, leidas del archivo XML
-    AllItems  : TCompletItems; //lista de todas las palabras disponibles para el completado
     procedure MiraEntornoCursor; virtual;
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
@@ -138,7 +151,13 @@ type
     procedure UnSelectEditor;  //termina la ayuda contextual con el editor
     procedure UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
     procedure KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure AddCompItem(item, content: string; blk: TFaSynBlock);
+    procedure AddCompItemL(list: string; blk: TFaSynBlock);
     procedure CloseCompletionWindow;
+    //Utilidades para analizador léxico
+    property Range: TPtrTokEspec read fRange write fRange;
+    property State: TFaLexerState read GetState write SetState;
+  public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   end;
@@ -279,7 +298,8 @@ begin
   //no encontró
 end;
 procedure TSynFacilComplet.AddCompItem(item, content: string; blk: TFaSynBlock);
-//Agrega un ítem a la lsta de completado
+//Agrega un ítem a la lsta de completado. "blk" es el bloque donde será válida el ítem para
+//el completado. Si es NIL, será válido en cualquier bloque.
 var
   n: Integer;
   r: TCompletItem;
@@ -317,7 +337,8 @@ begin
   lst.Destroy;
 end;
 procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
-//Procesa la etiqueta <Completion>Permite agregar una lista de identificadores especiales separados por espacios.
+//Procesa la etiqueta <Completion>, que es el bloque que define todo el sistema de
+//completado de código.
 var
   listIden: string;
   tCasSen: TFaXMLatrib;
@@ -462,8 +483,8 @@ begin
   MenuComplet := nil;  //lo marca como  liberado
 end;
 
-function TSynFacilComplet.CierraVentComplet: boolean;
-//Verifica y cierra la ventana de compeltado si el cursor está fuera del token actual.
+function TSynFacilComplet.CheckForClose: boolean;
+//Verifica y cierra la ventana de completado si el cursor está fuera del token actual.
 //SI se cierra devuelve TRUE.
 begin
   Result := false;
@@ -501,7 +522,7 @@ begin
   //Ubica el token de trabajo. Puede ser el actual o el anterior
   //ve si estamos al inicio de un token
   if tokens[curTok].posIni+1 = ed.CaretX then begin
-    //Estamos justo al inicio del token (después final de un token)
+    //Estamos justo al inicio del token (después de un token)
     iCurTok:=curTok-1;  //toma el anterior
     if iCurTok<0 then iCurTok := 0; //a menos que sea el primero
   end else begin
@@ -520,80 +541,6 @@ begin
   IdentAct:=tok0.txt;
   IdentAnt:='';
   BloqueAct := tok0.curBlk;  //devuelve bloque
-  {
-  tok0 := tokens[curTok];    //lee token actual
-  if curTok = 0 then begin   ////////////////es el primer token
-    tok_1.txt := '';         //token anterior
-    if EsIdentif(tok0) then begin
-      //está en medio de un identificador, no queda otra.
-      PosiCursor:=pcEnIdent;  //en medio de identificador
-      CurX := ed.CaretX;
-      IdentAct0:= copy(tok0.txt,1,CurX-tok0.posIni-1);
-      IdentAct:=tok0.txt;
-      IdentAnt:='';
-    end;
-    BloqueAct := tok0.curBlk;  //devuelve bloque
-  end else begin             ///////////////hay otros tokens anteriores
-    //lee el token actual y los anteriores
-    tok_1 := tokens[curTok-1];   //token anterior
-    if curTok>1 then   //hay anterior
-      tok_2 := tokens[curTok-2]
-    else begin  //token anterior
-      tok_2.TokTyp:=nil;
-      tok_2.txt:='';
-    end;
-    if curTok>2 then   //hay anterior
-      tok_3 := tokens[curTok-3]
-    else begin  //token anterior
-      tok_3.TokTyp:=nil;
-      tok_3.txt:='';
-    end;
-    //analiza la ubicación
-    if EsIdentif(tok0) then begin
-      //está al inicio o en medio de un identificador, no queda otra.
-      if tok0.posIni+1 = ed.CaretX then begin
-        //estamos al inicio del identificador
-
-      end else begin
-        //estamos en medio de un identificador
-        PosiCursor:=pcEnIdent;  //en medio de identificador
-        CurX := ed.CaretX;
-        IdentAct0:= copy(tok0.txt,1,CurX-tok0.posIni-1);
-        IdentAct:=tok0.txt;
-        //busca identificador anterior
-        if (tok_1.TokTyp = self.tkSpace) and EsIdentif(tok_2) then begin
-          //hay identificador anterior
-          IdentAnt:=tok_2.txt;
-        end else
-          IdentAnt:='';
-      end;
-    end else if EsIdentif(tok_1) then begin
-      //El anterior es identificador, entonces el que sigue no lo es.
-      if tok0.posIni+1 = ed.CaretX then begin
-        //Estamos justo al final del identificador
-        PosiCursor:=pcEnOtro;  //después de identificador
-        IdentAct:=tok_1.txt;
-        IdentAct0:=tok_1.txt;
-        //busca identificador anterior
-        if (tok_2.TokTyp = self.tkSpace) and EsIdentif(tok_3) then begin
-          //hay identificador anterior
-          IdentAnt:=tok_3.txt;
-        end else
-          IdentAnt:='';
-      end else begin
-        //Estamos en medio del siguiente token
-
-      end;
-    end else if not EsIdentif(tok0) and (tok_1.TokTyp = self.tkSpace) and
-                    EsIdentif(tok_2) then begin
-      //no hay identificador actual pero hay un identificador antes seguido de espacio
-      PosiCursor := pcDespuesIdent;
-      IdentAct:='';
-      IdentAct0:='';
-      IdentAnt:=tok_2.txt;
-    end;
-    BloqueAct := tok0.curBlk;  //devuelve bloque
-  end;}
 end;
 procedure TSynFacilComplet.OnCodeCompletion(var Value: string;
   SourceValue: string; var SourceStart, SourceEnd: TPoint; KeyChar: TUTF8Char;
@@ -620,7 +567,6 @@ begin
   MiraEntornoCursor;  //actualiza IdentAct, IdentAnt, BloqueAct, PosiCursor
   //Veriifca si se va a abrir la lista por un evento de teclado o por un atajo
   if MenuComplet.CurrentString='<KeyUp>' then begin
-    //  if (utKey<>'') or (vKey<>0) then begin
 //    debugln('Abierto por teclado utKey='+utKey+',vKey='+IntToStr(vKey));
     if utKey='' then begin
       //La tecla pulsada no es un caracter imprimible
@@ -700,6 +646,9 @@ begin
         if Shift = [] then begin  //envía al editor
            ed.CommandProcessor(ecLineStart, #0, nil);
            MenuComplet.Deactivate;  //desactiva
+        end else if Shift = [ssShift] then begin
+          ed.CommandProcessor(ecSelLineStart, #0, nil);
+          MenuComplet.Deactivate;  //desactiva
         end;
         Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
       end;
@@ -707,13 +656,16 @@ begin
         if Shift = [] then begin  //envía al editor
            ed.CommandProcessor(ecLineEnd, #0, nil);
            MenuComplet.Deactivate;  //desactiva
+        end else if Shift = [ssShift] then begin
+          ed.CommandProcessor(ecSelLineEnd, #0, nil);
+          MenuComplet.Deactivate;  //desactiva
         end;
         Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
       end;
     VK_BACK: begin
         if Shift = [] then begin  //son Ctrl o Shift
            ed.CommandProcessor(ecDeleteLastChar, #0, nil);  //envía al editor
-           if CierraVentComplet then begin Key:=VK_UNKNOWN;; exit end;
+           if CheckForClose then begin Key:=VK_UNKNOWN;; exit end;
            MiraEntornoCursor;  //solo para actualizar el identificador actual
            FillCompletMenuFilteredBy(IdentAct0);
         end;
@@ -722,7 +674,7 @@ begin
     VK_LEFT: begin
         if Shift = [] then begin  //envía al editor
           ed.CommandProcessor(ecLeft, #0, nil);
-          if CierraVentComplet then begin Key:=VK_UNKNOWN;; exit end;
+          if CheckForClose then begin Key:=VK_UNKNOWN;; exit end;
         end else if Shift = [ssShift] then begin
           ed.CommandProcessor(ecSelLeft, #0, nil);
           MenuComplet.Deactivate;  //desactiva
@@ -773,7 +725,7 @@ begin
 //debugln('Form.OnKeyPress:'+IdentAct0+':'+IntToStr(ed.CaretX));
 //Las posibles opciones ya se deben haber llenado. Aquí solo filtramos.
   MiraEntornoCursor;  //solo para actualizar el identificador actual
-  if CierraVentComplet then exit;
+  if CheckForClose then exit;
   FillCompletMenuFilteredBy(IdentAct0);
 end;
 procedure TSynFacilComplet.UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
@@ -805,7 +757,7 @@ begin
   vKey := Key;   //guarda
   //Dispara evento OnExecute con el valor de "vKey" y "utKey" actualizados
   OpenCompletionWindow;  //solo se mostrará si hay ítems
-  Key := 0;
+  vKey := 0;
   utKey := '';  //limpia por si la siguiente tecla pulsada no dispara a UTF8KeyPress()
 End;
 procedure TSynFacilComplet.FillCompletMenuFilteredBy(str: string);
@@ -857,6 +809,38 @@ procedure TSynFacilComplet.CloseCompletionWindow;
 //Cierra la ventana del menú contextual
 begin
   MenuComplet.Deactivate;
+end;
+//Utilidades para analizadores léxicos
+function TSynFacilComplet.GetState: TFaLexerState;
+//Devuelve el estado actual del resaltador, pero sin considerar el estado de los bloque,
+//solo el estado de tokens y rangos.
+begin
+  //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
+  Result.fLine    := fLine;
+  Result.tamLin   := tamLin;
+  //propiedades que van cambiando conforme se avanza en la exploración de la línea
+  Result.posTok   := posTok;
+  Result.BlkToClose:= BlkToClose;
+  Result.posIni   := posIni;
+  Result.posFin   := posFin;
+  Result.fRange   := fRange;
+  Result.fTokenID := fTokenID;
+end;
+procedure TSynFacilComplet.SetState(state: TFaLexerState);
+//Configura el estado actual del resaltador, pero sin considerar el estado de los bloque,
+//solo el estado de tokens y rangos.
+//Al cambiar el estado actual del resaltador, se pierde el estado que tenía.
+begin
+  //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
+  fLine      := state.fLine;
+  tamLin     := state.tamLin;
+  //propiedades que van cambiando conforme se avanza en la exploración de la línea
+  posTok     := state.posTok;
+  BlkToClose := state.BlkToClose;
+  posIni     := state.posIni;
+  posFin     := state.posFin;
+  fRange     := state.fRange;
+  fTokenID   := state.fTokenID;
 end;
 constructor TSynFacilComplet.Create(AOwner: TComponent);
 begin

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Language name="Object Pascal" ext="pas" ColorBlock="Block">
-  <Completion OpenOnKeyUp="false">
+  <Completion>
     <Include Attribute="Keyword"></Include>
   "begin&#xD;  &#xD;end;"
   "if expresion then begin&#xD;  &#xD;end;"
@@ -22,7 +22,8 @@
     mod
     not nil new
     or object  of  on  operator out 
-    procedure property public private packed program 
+    procedure property 
+	protected public private published packed program 
     repeat record  reintroduce raise 
     string self  set  shl  shr  
     then to try true type threadvar 
@@ -60,6 +61,7 @@
   <Section Name="unit-type" Start="type" Parent="unit"></Section>
 
   <Block Name="Class" Start="Class" End="end" BackCol="Transparent">
+      <Section Start="protected" BackCol="Transparent"> </Section>
       <Section Start="published" BackCol="Transparent"> </Section>
       <Section Start="private" BackCol="Transparent"> </Section>
 	  <Section Start="public" BackCol="Transparent"> </Section>

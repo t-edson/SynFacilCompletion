@@ -21,12 +21,14 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="67"/>
-        <CursorPos X="1" Y="84"/>
+        <TopLine Value="43"/>
+        <CursorPos X="22" Y="63"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="usintax.pas"/>
@@ -135,8 +137,8 @@
         <Filename Value="..\SynFacilHighlighter.pas"/>
         <UnitName Value="SynFacilHighlighter"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="136"/>
-        <CursorPos X="5" Y="151"/>
+        <TopLine Value="1"/>
+        <CursorPos X="1" Y="1"/>
         <UsageCount Value="13"/>
         <Bookmarks Count="1">
           <Item0 X="1" Y="1" ID="1"/>
@@ -222,12 +224,10 @@
       <Unit25>
         <Filename Value="..\SynFacilCompletion.pas"/>
         <UnitName Value="SynFacilCompletion"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="0"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="103"/>
-        <CursorPos X="1" Y="106"/>
-        <FoldState Value=" T4iF05 TMl001042G11131724123 T3kH0N31125 pkRrG09011 pj4kY0G]KiYjD091 T6kJ0261]p0kRy5D]a0iXR94362232171F]kXsHg2F THwN2{3X"/>
+        <TopLine Value="46"/>
+        <CursorPos X="1" Y="22"/>
         <UsageCount Value="31"/>
         <Bookmarks Count="1">
           <Item0 X="1" Y="1" ID="1"/>
@@ -265,51 +265,51 @@
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="629" Column="32" TopLine="416"/>
+        <Caret Line="302" Column="21" TopLine="146"/>
       </Position1>
       <Position2>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="404" Column="13" TopLine="336"/>
+        <Caret Line="307" Column="13" TopLine="146"/>
       </Position2>
       <Position3>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="388" Column="74" TopLine="331"/>
+        <Caret Line="371" Column="69" TopLine="328"/>
       </Position3>
       <Position4>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="371" Column="63" TopLine="331"/>
+        <Caret Line="80" Column="8" TopLine="56"/>
       </Position4>
       <Position5>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="287" Column="1" TopLine="146"/>
+        <Caret Line="125" Column="13" TopLine="107"/>
       </Position5>
       <Position6>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="301" Column="21" TopLine="146"/>
+        <Caret Line="124" Column="59" TopLine="106"/>
       </Position6>
       <Position7>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="302" Column="21" TopLine="146"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position7>
       <Position8>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="307" Column="13" TopLine="146"/>
+        <Caret Line="24" Column="58" TopLine="1"/>
       </Position8>
       <Position9>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="371" Column="69" TopLine="328"/>
+        <Caret Line="126" Column="13" TopLine="96"/>
       </Position9>
       <Position10>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="80" Column="8" TopLine="56"/>
+        <Caret Line="282" Column="7" TopLine="136"/>
       </Position10>
       <Position11>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="125" Column="13" TopLine="107"/>
+        <Caret Line="132" Column="26" TopLine="108"/>
       </Position11>
       <Position12>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="124" Column="59" TopLine="106"/>
+        <Caret Line="134" Column="26" TopLine="109"/>
       </Position12>
       <Position13>
         <Filename Value="..\SynFacilCompletion.pas"/>
@@ -317,71 +317,71 @@
       </Position13>
       <Position14>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="24" Column="58" TopLine="1"/>
+        <Caret Line="867" Column="1" TopLine="595"/>
       </Position14>
       <Position15>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="126" Column="13" TopLine="96"/>
+        <Caret Line="95" Column="1" TopLine="88"/>
       </Position15>
       <Position16>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="282" Column="7" TopLine="136"/>
+        <Caret Line="1" Column="1" TopLine="1"/>
       </Position16>
       <Position17>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="132" Column="26" TopLine="108"/>
+        <Caret Line="637" Column="74" TopLine="593"/>
       </Position17>
       <Position18>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="134" Column="26" TopLine="109"/>
+        <Caret Line="84" Column="19" TopLine="75"/>
       </Position18>
       <Position19>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="95" Column="17" TopLine="82"/>
       </Position19>
       <Position20>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="867" Column="1" TopLine="595"/>
+        <Caret Line="75" Column="39" TopLine="56"/>
       </Position20>
       <Position21>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="95" Column="1" TopLine="88"/>
+        <Caret Line="71" Column="28" TopLine="36"/>
       </Position21>
       <Position22>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1" Column="1" TopLine="1"/>
+        <Caret Line="96" Column="10" TopLine="65"/>
       </Position22>
       <Position23>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="637" Column="74" TopLine="593"/>
+        <Caret Line="605" Column="29" TopLine="427"/>
       </Position23>
       <Position24>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="84" Column="19" TopLine="75"/>
+        <Caret Line="612" Column="3" TopLine="479"/>
       </Position24>
       <Position25>
-        <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="95" Column="17" TopLine="82"/>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="73" Column="1" TopLine="56"/>
       </Position25>
       <Position26>
-        <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="75" Column="39" TopLine="56"/>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="48" Column="6" TopLine="40"/>
       </Position26>
       <Position27>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="71" Column="28" TopLine="36"/>
+        <Caret Line="131" Column="16" TopLine="119"/>
       </Position27>
       <Position28>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="96" Column="10" TopLine="65"/>
+        <Caret Line="61" Column="61" TopLine="40"/>
       </Position28>
       <Position29>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="605" Column="29" TopLine="427"/>
+        <Caret Line="125" Column="19" TopLine="98"/>
       </Position29>
       <Position30>
-        <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="612" Column="3" TopLine="479"/>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="51" Column="16" TopLine="39"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

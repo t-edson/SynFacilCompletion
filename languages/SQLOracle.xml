@@ -49,7 +49,7 @@
 "ROLLBACK;"
 "SELECT * FROM "
 "SELECT count( *) FROM "
-"SELECT table_name FROM tabs WHERE table_name LIKE ""%%"";"
+"SELECT table_name FROM tabs WHERE table_name LIKE '%%';"
 "SELECT campos FROM tabla &#xD; WHERE condición ORDER BY campos;"
 "SET LINESIZE 1000"
 "SET PAGESIZE 5000"
@@ -113,6 +113,7 @@
   </Completion>
 
   <Attribute Name="Keyword" Bold="true"></Attribute>
+  
   <Identifiers CharsStart= "A..Za..z_$" Content = "A..Za..z0..9_"> 
     <Keyword> 
   ACCESS ADD ALL ALTER AND ANY AS ASC AUDIT BEGIN BETWEEN BY 
@@ -128,6 +129,7 @@ SELECT SESSION SET SYSDATE SPOOL SHARE SIZE SMALLINT SQL START SUBTYPE SUCCESSFU
 TABAUTH TABLE THEN TO TRIGGER TYPE UID UNION UNIQUE UPDATE USE USER 
 VALIDATE VALUES VARCHAR VARCHAR2 VIEW VIEWS WHEN WHENEVER WHERE WITH 
     </Keyword>
+
   </Identifiers>
   <Token CharsStart="0..9" Content = '0..9' Attribute="NUMBER"> </Token>
   <String Start="'" End="'"></String>
