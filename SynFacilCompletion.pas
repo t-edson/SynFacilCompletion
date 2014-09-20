@@ -12,6 +12,8 @@ en el evento OnKeyUp, después de un evento OnKeyDown.
 * Se crea "vShift", para poder teenr más información sobre la tecla pulsada
 * Se agrega protección adicional con vShift a OnExecute(), para evitar que se active
 con Ctrl+Tab.
+* Se quita la dependencia de SynCompletionQ,poniendo una protección a OnExecute(),
+para que evite geenrar una lista de completado con un solo elemento.
 
 Descripción
 ============
@@ -68,7 +70,7 @@ uses
   SynFacilHighlighter,
   {Debe utilizar su propia unidad SynCompletion, porque maneja de forma diferente los
   eventos del teclado, de la ventana de completado}
-  SynCompletionQ;
+  SynCompletion;
 
 type
   //Permite leer el estado actual del resaltador. Considera la posición actual de la
@@ -836,6 +838,10 @@ begin
   end;
   //Después de llenar la lista, se puede ver si tiene o no elementos
   if MenuComplet.ItemList.Count <> 0 then begin  //se abrirá
+    if MenuComplet.ItemList.Count  = 1 then begin
+      //se agrega un elemento más porque sino SynCompletion, hará el reemplaz automáticamente.
+      MenuComplet.ItemList.Add('');
+    end;
     //aprovechamos para guardar la posición de inicio del token identificador
     if PosiCursor = pcInIdent then begin  //en identificador
       Pos0 := Point(tok0.posIni+1, ed.CaretY);   //guarda la posición de origen del token actual
