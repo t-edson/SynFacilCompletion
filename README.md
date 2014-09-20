@@ -1,4 +1,4 @@
-SynFacilCompletion 0.4
+SynFacilCompletion 0.5
 ======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -99,4 +99,6 @@ It's possible to use too, the list of Keywords (or another group) like words for
 In this way, we avoid to repeat all the list of keywords again.
 
 This library is still in a early state of development, and could change a lot in the future.
+
+For more information, check the documentation.
 

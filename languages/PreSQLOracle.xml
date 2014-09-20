@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<Language name="SQL Oracle" ext="psql" ColorBlock="Block">
+<Language name="SQL Oracle" ext="sql" ColorBlock="Block">
   <Completion>
     <Include Attribute="Keyword"></Include>
 	<List Name="plantillas"> 
@@ -45,6 +45,7 @@
 "LOCK TABLE tabla IN EXCLUSIVE MODE;"
 "ORDER BY "
 "PROCEDURE nombre(parámetros) IS&#xD;BEGIN&#xD;END;"
+"PROMPT mensaje"
 "RENAME nombre TO nuevo_nombre;"
 "ROLLBACK;"
 "SELECT * FROM "
@@ -110,20 +111,116 @@
 "%ROWTYPE"
 "%TYPE"
 	</List>
+    <List Name="Alter" AfterIdentif="Alter">
+"SESSION SET"
+"TABLE "
+"TABLE tabla ADD columna tipo;"
+"TABLE tabla MODIFY columna tipo;"
+"TABLE tabla DROP columna;"
+"INDEX "
+"INDEX índice REBUILD;"
+"INDEX índice RENAME TO índice;"
+"INDEX índice STORAGE (PCTINCREASE 50);"
+"INDEX VISIBLE;"
+	</List>
+	<List Name="from" AfterIdentif="from">
+    DUAL
+    USER_TABLES
+    USER_VIEWS
+    ALL_TABLES
+    ALL_VIEWS
+	</List>
+	<List Name="Set" AfterIdentif="Set">
+    APPINFO
+    ARRAYSIZE
+    AUTOCOMMIT
+    AUTOPRINT
+    AUTORECOVERY
+    AUTOTRACE
+    BLOCKTERMINATOR
+    BTITLE
+    CMDSEP
+    COLSEP
+    COMPATIBILITY
+    CONCAT
+    COPYCOMMIT
+    COPYTYPECHECK
+    DEFINE
+    DESCRIBE
+    MARKUP
+    ECHO
+    EDITFILE
+    EMBEDDED
+    ESCAPE
+    FEEDBACK
+    FLAGGER
+    FLUSH
+    HEADING
+    HEADSEP
+    INSTANCE
+    LINESIZE
+    "LINESIZE 500"
+    LNO
+    LOBOFFSET
+    LOGSOURCE
+    LONG
+    LONGCHUNKSIZE
+    NEWPAGE
+    NLS_DATE_FORMAT
+    "NLS_DATE_FORMAT = 'DD/MM/YYYY';"
+    "NLS_DATE_FORMAT = 'YYYY/MM/DD';"
+    "NLS_DATE_FORMAT = 'YYYY/MM/DD HH24:MI:SS';"
+    NULL
+    NUMFORMAT
+    NUMWIDTH
+    PAGESIZE
+    "PAGESIZE 5000"
+    PAUSE
+    PNO
+    RECSEP
+    RECSEPCHAR
+    RELEASE
+    REPFOOTER
+    REPHEADER
+    SERVEROUTPUT
+    SHIFTINOUT
+    SHOWMODE
+    SPOOL
+    SQLBLANKLINES
+    SQLCASE
+    SQLCODE
+    SQLCONTINUE
+    SQLNUMBER
+    SQLPREFIX
+    SQLPROMPT
+    SQLTERMINATOR
+    SUFFIX
+    TAB
+    TERMOUT
+    TIME
+    TIMING
+    TRIMOUT
+    TRIMSPOOL
+    TTITLE
+    UNDERLINE
+    USER
+    VERIFY
+    WRAP
+	</List>
   </Completion>
 
   <Attribute Name="Keyword" Bold="true"></Attribute>
   <Attribute Name="presql" ForeCol="Red"></Attribute>
-  <Identifiers CharsStart= "A..Za..z_$" Content = "A..Za..z0..9_"> 
+  <Identifiers CharsStart= "A..Za..z_$" Content = "A..Za..z0..9_$"> 
     <Keyword> 
   ACCESS ADD ALL ALTER AND ANY AS ASC AUDIT BEGIN BETWEEN BY 
 CHAR CHECK CLUSTERS CLUSTER COLAUTH COLUMN CRASH COMMENT COMPRESS CONNECT CREATE CURRENT CURSOR
-DATABASE DATE DECIMAL DECLARE DEFAULT DEFINE DELETE DESC DESCRIBE DISTINCT DROP 
+DATABASE DATE DECIMAL DECLARE DEFAULT DEFINE DELETE DESC DESCRIBE DISCONNECT DISTINCT DROP 
 ELSE ELSIF END EXCEPTION EXCLUSIVE EXECUTE EXIT EXISTS 
 FILE FLOAT FOR FROM FUNCTION GLOBAL GOTO GRANT GROUP HAVING IDENTIFIED 
 IF IMMEDIATE IN INCREMENT INDEXES INDEX INITIAL INSERT INTEGER INTERSECT INTO IS 
 LEVEL LIKE LOCK LONG LOOP MAXEXTENTS MINUS MLSLABEL MODE MODIFY NOAUDIT NOCOMPRESS NOT NOWAIT NULL NUMBER 
-OF OFFLINE ON OR ONLINE OPTION OFF ORDER OVERLAPS PCTFREE PRIOR PROCEDURE PRIVILEGES PUBLIC 
+OF OFFLINE ON OR ONLINE OPTION OFF ORDER OVERLAPS PCTFREE PRIOR PROCEDURE PROMPT PRIVILEGES PUBLIC 
 RANGE RAW RECORD RENAME RESOURCE REVOKE ROW ROWID ROWNUM ROWS 
 SELECT SESSION SET SYSDATE SPOOL SHARE SIZE SMALLINT SQL START SUBTYPE SUCCESSFUL SYNONYM 
 TABAUTH TABLE THEN TO TRIGGER TYPE UID UNION UNIQUE UPDATE USE USER 
@@ -162,13 +259,13 @@ $infovista
 
   <Block Start="$PARA" End="FINPARA" Folding="True" Parent="Main" Name="blq_PARA"></Block>
   <Block Start="COMO" End="FINDEFINIR"></Block>
-
+  
   <Block Start="SELECT" End=";" BackCol="#F2F5A9" Folding="False" Name="blo_SELECT">
     <End TokPos="1">/</End>
 	<Section Start="SELECT" FirstSec="True" BackCol="#CEF6CE" Name="sec_SELECT"> </Section>
 	<Section Start="FROM" BackCol="#F2F5A9" Name="sec_FROM"> </Section>
   </Block>
-  <Block Start="BEGIN" End="END" Folding="False"></Block>
+  <Block Start="BEGIN" End="END" Folding="True"></Block>
   <Block Start="THEN" End="END" Folding="True"></Block>
   <Block Start="FOR" End="END" Folding="True"></Block>
   <Block Start="INSERT" End=";" BackCol="#F6D5D5" Name="blo_INSERT"></Block>
