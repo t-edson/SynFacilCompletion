@@ -1,27 +1,21 @@
 {
-SynFacilCompletion 0.5
+SynFacilCompletion 0.6b
 =======================
 Por Tito Hinostroza 14/09/2014
-* Se habilitó el funcionamiento de la propiedad "EnterSelect".
-* Se cambia nombre de "EnterSelect" a "SelectOnEnter"
-* Se crea el parámetro "SelectOnEnter", desde el archivo XML.
-* Se filtró las teclas de selección de la opción, evitando que se active con <Ctrl>+<Tab>
-o con <Ctrl>+<Enter>.
-* Se mejoró MiraEntornoCursor() para que determine correctamente los estado pcInIdent
-y pcAfterIdent.
-* Se cambia nombre de valores de TPosicCursor.
-* Se cambia nombre de TCompletItem  y TCompletItems.
-* Se agrega el campo "posit" a TFaCompletItem, para poder indicar la posición del
-cursor.
-* Se modifica ProcCompletionLabel(), par que procese la etiqueta "AfterIdentif".
-* Se modifican AddCompItem() y AddCompItemL(), para que permitan indicar la posición.
-* Se pone "CaseSensComp" como público.
-* Se modifica FillCompletMenuFilteredBy(), para que soporte el caso comodín.
-* Se modifica OnExecute(), para que procese las nuevas situaciones.
+* Se crea la clase TSynCompletionF, como descendiente de TSynCompletion, para poder
+mejorar el dibujo de los items en pantalla.
+* Se elimina el método EsIdentif().
+* Se corrige el cálculo de la coordenada del cursor usando coordenada lógica, en
+MiraEntornoCursor().
+* Se agrega la variable SearchOnKeyUp, para poder inhabilitar la lista de completado
+en el evento OnKeyUp, después de un evento OnKeyDown.
+* Se crea "vShift", para poder teenr más información sobre la tecla pulsada
+* Se agrega protección adicional con vShift a OnExecute(), para evitar que se active
+con Ctrl+Tab.
 
 Descripción
 ============
-Unidad que expande al resaltador TSynFacilSyn, para que pueda soportar configuraiones
+Unidad que expande al resaltador TSynFacilSyn, para que pueda soportar configuraciones
 de autocompletado de texto.
 Requiere de la unidad SynCompetionQ, que es una versión modificada de SynCompletion
 
@@ -69,8 +63,9 @@ unit SynFacilCompletion;
 interface
 
 uses
-  Classes, SysUtils, Dialogs, XMLRead, DOM, Math, LCLType, SynEditHighlighter,
-  SynEdit, SynEditTypes, SynEditKeyCmds, Lazlogger, SynFacilHighlighter,
+  Classes, SysUtils, Dialogs, XMLRead, DOM, Math, LCLType, Graphics,
+  SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
+  SynFacilHighlighter,
   {Debe utilizar su propia unidad SynCompletion, porque maneja de forma diferente los
   eventos del teclado, de la ventana de completado}
   SynCompletionQ;
@@ -108,6 +103,22 @@ type
   end;
   TFaCompletItems = array of TFaCompletItem;
 
+  //clase personalziada para el completado
+
+  { TSynCompletionF }
+
+  TSynCompletionF = class(TSynCompletion)
+    function OnSynCompletionPaintItem(const AKey: string; ACanvas: TCanvas; X,
+      Y: integer; IsSelected: boolean; Index: integer): boolean;
+
+  private
+    function PaintCompletionItem(const AKey: string; ACanvas: TCanvas; X, Y,
+      MaxX: integer; ItemSelected: boolean; Index: integer;
+      aCompletion: TSynCompletion): TPoint;
+  public
+    constructor Create(AOwner: TComponent); override;
+  end;
+
   { TSynFacilComplet }
   //clase principal
   TSynFacilComplet = class(TSynFacilSyn)
@@ -121,27 +132,28 @@ type
     function GetState: TFaLexerState;
     procedure SetState(state: TFaLexerState);
   protected
-    ed       : TSynEdit;         //referencia interna al editor
-    MenuComplet: TSynCompletion; //menú contextual
+    ed        : TSynEdit;         //referencia interna al editor
+    MenuComplet: TSynCompletionF; //menú contextual
     AllItems  : TFaCompletItems; //lista de todas las palabras disponibles para el completado
     AvailItems: TStringList;  {Lista de palabras disponible para cargar en el menú de
                                 auto-completado}
     PosiCursor: TPosicCursor;  //Posición del cursor
-    tok0     : TFaTokInfo;     //token actual del completado
-    Pos0     : TPoint;  //Posición incial del cursor donde se abrió la ventana de completado
-    IdentAct0: string;         //IDentificador actual desde el inicio hasta el cursor
-    IdentAct : string;         //Identificador actual completo
-    IdentAnt : string;         //Identificador anterior
-    BloqueAct: TFaSynBlock;    //referecnia al bloque actual
+    tok0      : TFaTokInfo;     //token actual del completado
+    Pos0      : TPoint;  //Posición incial del cursor donde se abrió la ventana de completado
+    IdentAct0 : string;         //IDentificador actual desde el inicio hasta el cursor
+    IdentAct  : string;         //Identificador actual completo
+    IdentAnt  : string;         //Identificador anterior
+    BloqueAct : TFaSynBlock;    //referecnia al bloque actual
 
-    tokens   : TATokInfo;      //lista de tokens actuales
-    iCurTok  : integer;        //índice al token actual
+    tokens    : TATokInfo;      //lista de tokens actuales
+    iCurTok   : integer;        //índice al token actual
 
-    utKey    : TUTF8Char;      //tecla pulsada
-    vKey     : word;           //código de tecla virtual
+    utKey         : TUTF8Char;      //tecla pulsada
+    vKey          : word;           //código de tecla virtual
+    vShift        : TShiftState;    //estado de shift
     SpecIdentifiers: TArrayTokEspec;
+    SearchOnKeyUp : boolean;        //bandera de control
     function CheckForClose: boolean;
-    function EsIdentif(const tok: TFaTokInfo): boolean;
     procedure FillCompletMenuFilteredBy(str: string);
     procedure OpenCompletionWindow;
     procedure ProcCompletionLabel(nodo: TDOMNode);
@@ -240,6 +252,141 @@ begin
   end;
   //No enecontró
   lext.Free;
+end;
+
+{ TSynCompletionF }
+function TSynCompletionF.OnSynCompletionPaintItem(const AKey: string;
+  ACanvas: TCanvas; X, Y: integer; IsSelected: boolean; Index: integer): boolean;
+var
+  MaxX: Integer;
+  hl: TSynCustomHighlighter;
+begin
+  //configura propiedades de texto
+//  if (Editor<>nil) then begin
+//    ACanvas.Font := Editor.Font
+//  end;
+  ACanvas.Font.Style:=[];
+{  if not IsSelected then
+    ACanvas.Font.Color := FActiveEditDefaultFGColor
+  else
+    ACanvas.Font.Color := FActiveEditSelectedFGColor;}
+  MaxX:=TheForm.ClientWidth;
+  hl := nil;
+  if Editor <> nil then
+    hl := Editor.Highlighter;
+  PaintCompletionItem(AKey, ACanvas, X, Y, MaxX, IsSelected, Index, self);
+
+  Result := false;
+//  Result:=true;  //para indicar que lo intercepta
+end;
+function TSynCompletionF.PaintCompletionItem(const AKey: string;
+  ACanvas: TCanvas; X, Y, MaxX: integer; ItemSelected: boolean; Index: integer;
+  aCompletion: TSynCompletion): TPoint;
+
+var
+  BGRed: Integer;
+  BGGreen: Integer;
+  BGBlue: Integer;
+  TokenStart: Integer;
+  BackgroundColor: TColorRef;
+  ForegroundColor: TColorRef;
+
+  procedure SetFontColor(NewColor: TColor);
+  var
+    FGRed: Integer;
+    FGGreen: Integer;
+    FGBlue: Integer;
+    RedDiff: integer;
+    GreenDiff: integer;
+    BlueDiff: integer;
+  begin
+    NewColor := TColor(ColorToRGB(NewColor));
+    FGRed:=(NewColor shr 16) and $ff;
+    FGGreen:=(NewColor shr 8) and $ff;
+    FGBlue:=NewColor and $ff;
+    RedDiff:=Abs(FGRed-BGRed);
+    GreenDiff:=Abs(FGGreen-BGGreen);
+    BlueDiff:=Abs(FGBlue -BGBlue);
+    if RedDiff*RedDiff + GreenDiff*GreenDiff + BlueDiff*BlueDiff<30000 then
+    begin
+      NewColor:=InvertColor(NewColor);
+      {IncreaseDiff(FGRed,BGRed);
+      IncreaseDiff(FGGreen,BGGreen);
+      IncreaseDiff(FGBlue,BGBlue);
+      NewColor:=(FGRed shl 16) or (FGGreen shl 8) or FGBlue;}
+    end;
+    ACanvas.Font.Color:=NewColor;
+  end;
+
+  procedure WriteToken(var TokenStart, TokenEnd: integer);
+  var
+    CurToken: String;
+  begin
+    if TokenStart>=1 then begin
+      CurToken:=copy(AKey,TokenStart,TokenEnd-TokenStart);
+      ACanvas.TextOut(x+1, y, CurToken);
+      x := x + ACanvas.TextWidth(CurToken);
+      //debugln('Paint A Text="',CurToken,'" x=',dbgs(x),' y=',dbgs(y),' "',ACanvas.Font.Name,'" ',dbgs(ACanvas.Font.Height),' ',dbgs(ACanvas.TextWidth(CurToken)));
+      TokenStart:=0;
+    end;
+  end;
+
+var
+  i: Integer;
+  s: string;
+//  IdentItem: TIdentifierListItem;
+  AColor: TColor;
+  IsReadOnly: boolean;
+  ImageIndex: longint;
+begin
+  ForegroundColor := ColorToRGB(ACanvas.Font.Color);
+  Result.X := 0;
+  Result.Y := ACanvas.TextHeight('W');
+
+
+  // draw
+    BackgroundColor:=ColorToRGB(ACanvas.Brush.Color);
+    BGRed:=(BackgroundColor shr 16) and $ff;
+    BGGreen:=(BackgroundColor shr 8) and $ff;
+    BGBlue:=BackgroundColor and $ff;
+    ImageIndex:=-1;
+
+
+        AColor:=clBlack;
+        s:='keyword';
+
+
+    SetFontColor(AColor);
+    ACanvas.TextOut(x+1,y,s);
+    inc(x,ACanvas.TextWidth('constructor '));
+    if x>MaxX then exit;
+
+    // paint the identifier
+    SetFontColor(ForegroundColor);
+    ACanvas.Font.Style:=ACanvas.Font.Style+[fsBold];
+    s:='identificador';
+    //DebugLn(['PaintCompletionItem ',x,',',y,' ',s]);
+    ACanvas.TextOut(x+1,y,s);
+    inc(x,ACanvas.TextWidth(s));
+    if x>MaxX then exit;
+    ACanvas.Font.Style:=ACanvas.Font.Style-[fsBold];
+
+    ImageIndex := -1;
+
+    // paint icon
+    if ImageIndex>=0 then begin
+      //IDEImages.Images_16, es de tipo TCustomImageList
+//      IDEImages.Images_16.Draw(ACanvas,x+1,y+(Result.Y-16) div 2,ImageIndex);
+      inc(x,18);
+      if x>MaxX then exit;
+    end;
+
+end;
+constructor TSynCompletionF.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  //intercepta este evento
+//  OnPaintItem:=@OnSynCompletionPaintItem;
 end;
 
 { TSynFacilComplet }
@@ -499,7 +646,7 @@ begin
   end;
   //asigna por si acaso no se había hecho
   ed.Highlighter :=  self;
-  MenuComplet:=TSynCompletion.Create(ed.Owner);   //crea menú contextual en el formulario
+  MenuComplet:=TSynCompletionF.Create(ed.Owner);   //crea menú contextual en el formulario
   MenuComplet.Editor:=ed;     //asigna editor
   MenuComplet.Width:=200;     //ancho inicial
   MenuComplet.OnExecute:=@OnExecute;
@@ -528,14 +675,6 @@ begin
     Result := true;
   end;
 end;
-function TSynFacilComplet.EsIdentif(const tok: TFaTokInfo): boolean;
-//Permite saber los tipos de tokens que se consideran como identificador
-begin
-  if (tok.TokTyp = self.tkIdentif) or (tok.TokTyp = self.tkKeyword) then
-    Result := true
-  else
-    Result := false;
-end;
 procedure TSynFacilComplet.MiraEntornoCursor;
 {Analiza el estado del cursor en el editor. Se supone que se debe llamar, después de
  actualizar el editor. Actualiza: PosiCursor, IdentAct, IdentAct0, IdentAnt, BloqueAct }
@@ -555,12 +694,13 @@ begin
   if curTok=-1 then exit;   //no ubica al token actual
   //Ubica el token de trabajo. Puede ser el actual o el anterior
   //ve si estamos al inicio de un token
-  if tokens[curTok].posIni+1 = ed.CaretX then begin
+  CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
+  if tokens[curTok].posIni+1 = CurX then begin
     //Estamos justo al inicio del token (después de un token)
     iCurTok:=curTok-1;  //toma el anterior
     if iCurTok<0 then iCurTok := 0; //a menos que sea el primero
   end else begin
-    //estamos en medio de un identificador
+    //estamos en medio de un token (no necesariamente identificador)
     iCurTok:=curTok;  //toma el mismo
   end;
   tok0 := tokens[icurTok];    //lee token actual
@@ -578,8 +718,8 @@ begin
       end;
     end;
   end;
-
-  CurX := ed.CaretX;
+  //captura "IdentAct0" y "BloqueAct"
+  CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
   IdentAct0:= copy(tok0.txt,1,CurX-tok0.posIni-1);
   IdentAct:=tok0.txt;
   BloqueAct := tok0.curBlk;  //devuelve bloque
@@ -642,10 +782,10 @@ begin
   MenuComplet.ItemList.Clear;  //inicia en cero,  por si no se llena.
   //Analiza entorno de cursor
   MiraEntornoCursor;  //actualiza IdentAct, IdentAnt, BloqueAct, PosiCursor
-  //Veriifca si se va a abrir la lista por un evento de teclado o por un atajo
+  //Veriifca si se va a abrir la lista por tecla común o por un atajo
   if MenuComplet.CurrentString='<KeyUp>' then begin
-//    debugln('Abierto por teclado utKey='+utKey+',vKey='+IntToStr(vKey));
-    if vKey=VK_TAB then begin
+//    debugln('Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
+    if (vKey=VK_TAB) and (vShift=[]) then begin
       //esta tecla es válida
     end else begin
       if utKey='' then begin
@@ -696,7 +836,7 @@ begin
   end;
   //Después de llenar la lista, se puede ver si tiene o no elementos
   if MenuComplet.ItemList.Count <> 0 then begin  //se abrirá
-    //aprovechamos para gaurdar la posición de inicio del token identificador
+    //aprovechamos para guardar la posición de inicio del token identificador
     if PosiCursor = pcInIdent then begin  //en identificador
       Pos0 := Point(tok0.posIni+1, ed.CaretY);   //guarda la posición de origen del token actual
     end else begin  //es otra cosa
@@ -710,7 +850,6 @@ procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
 begin
 //debugln('Form.OnKeyDown:'+IdentAct0+':'+IntToStr(ed.CaretX));
   case Key of
-// added the VK_XXX codes to make it more readable / maintainable
     VK_RETURN: begin
         if Shift = [] then begin
            if SelectOnEnter then  //solo si está permitido reemplazar
@@ -727,16 +866,7 @@ begin
     VK_NEXT:
       for i := 1 to NbLinesInWindow do
         SelectNext;
-    VK_UP:
-      if ssCtrl in Shift then
-        Position := 0
-      else
-        SelectPrec;
-    VK_DOWN:
-      if ssCtrl in Shift then
-        Position := ItemList.count - 1
-      else
-        SelectNext;}
+}
     VK_HOME: begin
         if Shift = [] then begin  //envía al editor
            ed.CommandProcessor(ecLineStart, #0, nil);
@@ -801,6 +931,10 @@ begin
     VK_TAB: begin
         if Shift = [] then begin
           MenuComplet.OnValidate(MenuComplet.TheForm, '', Shift);  //selecciona
+          SearchOnKeyUp := false;  {para que no intente buscar luego en el evento KeyUp,
+                   porque TAB está configurado como tecla válida para abrir la lista, y si
+                   se abre, (y no se ha isertado el TAB), aparecerá de nuevo el mismo
+                   identificador en la lista}
           Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
         end;
       end;
@@ -839,6 +973,11 @@ procedure TSynFacilComplet.KeyUp(Sender: TObject; var Key: Word;
 begin
   if not CompletionOn then exit;
   if not OpenOnKeyUp then exit;
+  if not SearchOnKeyUp then begin
+    //Se ha inhabilitado este evento para el completado
+    SearchOnKeyUp := true;
+    exit;
+  end;
   //verificación principal
   if MenuComplet.IsActive then begin
     //verifica si debe desaparecer la ventana, por mover el cursor a una posición anterior
@@ -851,10 +990,13 @@ begin
   //captura las teclas pulsadas y llama a OnExecute(), para ver si correspodne mostrar
   //la ventana de completado
   vKey := Key;   //guarda
-  //Dispara evento OnExecute con el valor de "vKey" y "utKey" actualizados
+  vShift := Shift;
+  //Dispara evento OnExecute con el valor de "vKey", "vShift" y "utKey" actualizados
   OpenCompletionWindow;  //solo se mostrará si hay ítems
   vKey := 0;
+  vShift := [];  //limpia
   utKey := '';  //limpia por si la siguiente tecla pulsada no dispara a UTF8KeyPress()
+  SearchOnKeyUp := true;  //limpia bandera
 End;
 procedure TSynFacilComplet.FillCompletMenuFilteredBy(str: string);
 //Llena el menú de completado a partir de "AvailItems", filtrando solo las
@@ -950,6 +1092,7 @@ begin
   SelectOnEnter := true;
   AvailItems := TStringList.Create;  //crea lista
   vKey := 0;     //limpia
+  vShift := [];  //limpia
   utKey := '';   //limpia
 end;
 destructor TSynFacilComplet.Destroy;

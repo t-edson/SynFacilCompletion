@@ -1,7 +1,9 @@
-SynFacilCompletion 0.5
+SynFacilCompletion 0.6
 ======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
+
+![SynFacilCompletion](http://blog.pucp.edu.pe/media/4946/20140920-synfacilcomplet1.png "Título de la imagen")
 
 This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and include all his options, and others special for defining the code-completion feature.
 
