@@ -13,10 +13,9 @@ In the XML file, it's added the label <COMPLETION> for defining a list of words 
 
 ## Using in a program.
 
-There are 3 units for to include  when using this library:
+There are 2 units for to include  when using this library:
 
-* SynCompletionQ.pas
-* SynFacilHighlighter.pas  (version 0.9.1 or higher)
+* SynFacilHighlighter.pas  (version 0.9.3 or higher)
 * SynFacilCompletion.pas
 
 Only the unit 'SynFacilCompletion' is necessary to include in the section USES of the programs. The other two units, are used by 'SynCompletionFacil'.
