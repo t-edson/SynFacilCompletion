@@ -9,11 +9,14 @@ mejorar el dibujo de los items en pantalla.
 MiraEntornoCursor().
 * Se agrega la variable SearchOnKeyUp, para poder inhabilitar la lista de completado
 en el evento OnKeyUp, después de un evento OnKeyDown.
-* Se crea "vShift", para poder teenr más información sobre la tecla pulsada
+* Se crea "vShift", para poder tener más información sobre la tecla pulsada
 * Se agrega protección adicional con vShift a OnExecute(), para evitar que se active
 con Ctrl+Tab.
 * Se quita la dependencia de SynCompletionQ,poniendo una protección a OnExecute(),
 para que evite geenrar una lista de completado con un solo elemento.
+* Se modifica FormKeyDown(), para que cierre la ventana de completado, cuando se pulsa
+<enter> + <Ctrl> o <enter>+<shift>, de modo que permita a la aplicación tomar el control
+de esas combinaciones de teclas.
 
 Descripción
 ============
@@ -857,11 +860,14 @@ begin
 //debugln('Form.OnKeyDown:'+IdentAct0+':'+IntToStr(ed.CaretX));
   case Key of
     VK_RETURN: begin
-        if Shift = [] then begin
+        if Shift= [ ] then begin
            if SelectOnEnter then  //solo si está permitido reemplazar
              MenuComplet.OnValidate(MenuComplet.TheForm, '', Shift);  //selecciona
+           Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
+        end else begin
+          Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
+          CloseCompletionWindow;  //cierra
         end;
-        Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
       end;
 {    VK_ESCAPE:
       if Assigned(OnCancel) then OnCancel(Self);
