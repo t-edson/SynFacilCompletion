@@ -1,5 +1,5 @@
 {
-SynFacilCompletion 0.6b
+SynFacilCompletion 0.6
 =======================
 Por Tito Hinostroza 14/09/2014
 * Se crea la clase TSynCompletionF, como descendiente de TSynCompletion, para poder
