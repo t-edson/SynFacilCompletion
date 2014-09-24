@@ -57,10 +57,7 @@ interface
 uses
   Classes, SysUtils, Dialogs, XMLRead, DOM, Math, LCLType, Graphics,
   SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
-  SynFacilHighlighter,
-  {Debe utilizar su propia unidad SynCompletion, porque maneja de forma diferente los
-  eventos del teclado, de la ventana de completado}
-  SynCompletion;
+  SynFacilHighlighter, SynCompletion;
 
 type
   //Permite leer el estado actual del resaltador. Considera la posición actual de la
