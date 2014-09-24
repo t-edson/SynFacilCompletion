@@ -1,22 +1,9 @@
 {
-SynFacilCompletion 0.6
+SynFacilCompletion 0.7b
 =======================
 Por Tito Hinostroza 14/09/2014
-* Se crea la clase TSynCompletionF, como descendiente de TSynCompletion, para poder
-mejorar el dibujo de los items en pantalla.
-* Se elimina el método EsIdentif().
-* Se corrige el cálculo de la coordenada del cursor usando coordenada lógica, en
-MiraEntornoCursor().
-* Se agrega la variable SearchOnKeyUp, para poder inhabilitar la lista de completado
-en el evento OnKeyUp, después de un evento OnKeyDown.
-* Se crea "vShift", para poder tener más información sobre la tecla pulsada
-* Se agrega protección adicional con vShift a OnExecute(), para evitar que se active
-con Ctrl+Tab.
-* Se quita la dependencia de SynCompletionQ,poniendo una protección a OnExecute(),
-para que evite geenrar una lista de completado con un solo elemento.
-* Se modifica FormKeyDown(), para que cierre la ventana de completado, cuando se pulsa
-<enter> + <Ctrl> o <enter>+<shift>, de modo que permita a la aplicación tomar el control
-de esas combinaciones de teclas.
+* Se crea el procedimiento SeleccionarPalabra() en FormKeyDown(), para reemplazar a
+OnValidate(), y así pasar por sus limitaciones.
 
 Descripción
 ============
@@ -856,29 +843,42 @@ begin
 end;
 procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
+procedure SeleccionarPalabra;
+//Selecciona, la palabra actual de la lista de completado. Usamos nuestra propia
+//rutina en vez de OnValidate(), para poder reemplazar identificadores de acuerdo
+//a la definición de sintaxis, además de otros tipos de tokens.
+var
+  CurLine: String;
+  NewWord: String;
+  Pos1: TPoint;
+  Pos2: TPoint;
+begin
+  if CurrentLines = nil then exit;
+  //Reemplaza actual
+//  ShowMessage(tok0.txt);
+  CurLine:= CurrentLines[ed.CaretY - 1];
+  NewWord := MenuComplet.ItemList[MenuComplet.Position];
+  //calcula intervalo del token
+  Pos1 := Point(tok0.posIni+1,ed.CaretY);
+  Pos2 := Point(tok0.posIni+tok0.length+1,ed.CaretY);
+//  ShowMessage(IntToStr(tok0.posIni+1)+','+IntToStr(tok0.posIni+tok0.length+1)) ;
+  ed.TextBetweenPoints[Pos1,Pos2] := NewWord;  //usa TextBetweenPoints(), para poder deshacer
+  ed.LogicalCaretXY :=Point(tok0.posIni+length(NewWord)+1,ed.CaretY);  //mueve cursor
+  CloseCompletionWindow;  //cierra
+end;
 begin
 //debugln('Form.OnKeyDown:'+IdentAct0+':'+IntToStr(ed.CaretX));
   case Key of
     VK_RETURN: begin
-        if Shift= [ ] then begin
+        if Shift= [] then begin
            if SelectOnEnter then  //solo si está permitido reemplazar
-             MenuComplet.OnValidate(MenuComplet.TheForm, '', Shift);  //selecciona
+             SeleccionarPalabra;
            Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
         end else begin
           Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
           CloseCompletionWindow;  //cierra
         end;
       end;
-{    VK_ESCAPE:
-      if Assigned(OnCancel) then OnCancel(Self);
-    // I do not think there is a worst way to do this, but laziness rules :-)
-    VK_PRIOR:
-      for i := 1 to NbLinesInWindow do
-        SelectPrec;
-    VK_NEXT:
-      for i := 1 to NbLinesInWindow do
-        SelectNext;
-}
     VK_HOME: begin
         if Shift = [] then begin  //envía al editor
            ed.CommandProcessor(ecLineStart, #0, nil);
@@ -924,7 +924,7 @@ begin
         end;
         Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
       end;
-    VK_Right: begin
+    VK_RIGHT: begin
         if Shift = [] then begin  //envía al editor
           ed.CommandProcessor(ecRight, #0, nil);
           MenuComplet.Deactivate;  //desactiva
@@ -942,7 +942,7 @@ begin
       end;
     VK_TAB: begin
         if Shift = [] then begin
-          MenuComplet.OnValidate(MenuComplet.TheForm, '', Shift);  //selecciona
+          SeleccionarPalabra;
           SearchOnKeyUp := false;  {para que no intente buscar luego en el evento KeyUp,
                    porque TAB está configurado como tecla válida para abrir la lista, y si
                    se abre, (y no se ha isertado el TAB), aparecerá de nuevo el mismo
