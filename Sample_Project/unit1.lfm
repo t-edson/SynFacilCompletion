@@ -4,7 +4,7 @@ object Form1: TForm1
   Top = 109
   Width = 616
   Caption = 'Form1'
-  ClientHeight = 476
+  ClientHeight = 456
   ClientWidth = 616
   Menu = MainMenu1
   OnCreate = FormCreate
@@ -13,7 +13,7 @@ object Form1: TForm1
   LCLVersion = '1.2.4.0'
   inline ed1: TSynEdit
     Left = 0
-    Height = 476
+    Height = 456
     Top = 0
     Width = 616
     Align = alClient
@@ -526,12 +526,10 @@ object Form1: TForm1
     top = 16
     object MenuItem1: TMenuItem
       Caption = '&Open...'
-      Visible = False
       OnClick = MenuItem1Click
     end
     object mnSyntax: TMenuItem
       Caption = '&Syntax'
-      Visible = False
     end
   end
   object OpenDialog1: TOpenDialog

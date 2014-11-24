@@ -55,7 +55,7 @@ unit SynFacilCompletion;
 interface
 
 uses
-  Classes, SysUtils, Dialogs, XMLRead, DOM, Math, LCLType, Graphics,
+  Classes, SysUtils, Dialogs, XMLRead, DOM, LCLType, Graphics,
   SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
   SynFacilHighlighter, SynCompletion;
 
@@ -321,7 +321,6 @@ var
   end;
 
 var
-  i: Integer;
   s: string;
 //  IdentItem: TIdentifierListItem;
   AColor: TColor;
@@ -669,7 +668,6 @@ procedure TSynFacilComplet.MiraEntornoCursor;
  actualizar el editor. Actualiza: PosiCursor, IdentAct, IdentAct0, IdentAnt, BloqueAct }
 var
   curTok: integer;
-  tok_1, tok_2, tok_3: TFaTokInfo; //tokens anteriores
   CurX: Integer;
 begin
   //valores por defecto
@@ -845,7 +843,6 @@ procedure SeleccionarPalabra;
 //rutina en vez de OnValidate(), para poder reemplazar identificadores de acuerdo
 //a la definición de sintaxis, además de otros tipos de tokens.
 var
-  CurLine: String;
   NewWord: String;
   Pos1: TPoint;
   Pos2: TPoint;
@@ -853,7 +850,6 @@ begin
   if CurrentLines = nil then exit;
   //Reemplaza actual
 //  ShowMessage(tok0.txt);
-  CurLine:= CurrentLines[ed.CaretY - 1];
   NewWord := MenuComplet.ItemList[MenuComplet.Position];
   //calcula intervalo del token
   Pos1 := Point(tok0.posIni+1,ed.CaretY);

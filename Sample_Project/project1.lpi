@@ -39,7 +39,7 @@
         <PackageName Value="LCL"/>
       </Item2>
     </RequiredPackages>
-    <Units Count="6">
+    <Units Count="2">
       <Unit0>
         <Filename Value="project1.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -53,26 +53,6 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
       </Unit1>
-      <Unit2>
-        <Filename Value="usintax.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="uSintax"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="usintaxsf.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="uSintaxSF"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="syncompletionq.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SynCompletionQ"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="synfacilcompletion.pas"/>
-        <IsPartOfProject Value="True"/>
-        <UnitName Value="SynFacilCompletion"/>
-      </Unit5>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -83,7 +63,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..;..\..\SynFacilSyn9.3b"/>
+      <OtherUnitFiles Value="..;..\..\SynFacilSyn 09.3"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Other>
