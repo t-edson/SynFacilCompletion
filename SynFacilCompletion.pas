@@ -4,6 +4,7 @@ SynFacilCompletion 0.7b
 Por Tito Hinostroza 14/09/2014
 * Se crea el procedimiento SeleccionarPalabra() en FormKeyDown(), para reemplazar a
 OnValidate(), y así pasar por sus limitaciones.
+* Se adecúa para poder trabajar con SynFaciLSyn 0.9.4
 
 Descripción
 ============
@@ -71,7 +72,7 @@ type
     BlkToClose : TFaSynBlock;   //bandera-variable para posponer el cierre de un bloque
     posIni     : Integer;       //índice a inicio de token
     posFin     : Integer;       //índice a siguiente token
-    fRange     : ^TTokEspec;    //para trabajar con tokens multilínea
+    fRange     : ^TTokSpec;    //para trabajar con tokens multilínea
     fTokenID   : TSynHighlighterAttributes;  //Id del token actual
   end;
 
@@ -140,7 +141,7 @@ type
     utKey         : TUTF8Char;      //tecla pulsada
     vKey          : word;           //código de tecla virtual
     vShift        : TShiftState;    //estado de shift
-    SpecIdentifiers: TArrayTokEspec;
+    SpecIdentifiers: TArrayTokSpec;
     SearchOnKeyUp : boolean;        //bandera de control
     function CheckForClose: boolean;
     procedure FillCompletMenuFilteredBy(str: string);
