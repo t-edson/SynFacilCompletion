@@ -1,16 +1,15 @@
 {
-SynFacilCompletion 0.7b
+SynFacilCompletion 0.7
 =======================
 Por Tito Hinostroza 14/09/2014
 * Se crea el procedimiento SeleccionarPalabra() en FormKeyDown(), para reemplazar a
 OnValidate(), y así pasar por sus limitaciones.
-* Se adecúa para poder trabajar con SynFaciLSyn 0.9.4
+* Se adecúa para poder trabajar con SynFacilSyn 0.9.5
 
 Descripción
 ============
 Unidad que expande al resaltador TSynFacilSyn, para que pueda soportar configuraciones
 de autocompletado de texto.
-Requiere de la unidad SynCompetionQ, que es una versión modificada de SynCompletion
 
 Se usa de froma similar a SynFacilSyn. Se debe crear un resaltador, pero ahora de la
 clase TSynFacilComplet:
@@ -530,7 +529,7 @@ begin
       end else begin
         posit := pcInIdent;  //por defecto, solo en identificadores
       end;
-      if ValidarAtribs(nodo2, 'Attribute') then exit;
+      if ValidateParams(nodo2, 'Attribute') then exit;
       if tListAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
         if IsAttributeName(tListAttr.val)  then begin
