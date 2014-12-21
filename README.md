@@ -9,7 +9,7 @@ This highlighter is based on the highlighter https://github.com/t-edson/SynFacil
 
 This library works in the same way that the SynFacilSyn library works. It uses a XML file for to define the syntax, and additionally, the words for the completion code.
  
-In the XML file, it's added the label <COMPLETION> for defining a list of words for using when writing code on the editor.
+In the XML file, it's added the label <<COMPLETION>> for defining a list of words for using when writing code on the editor.
 
 ## Using in a program.
 
