@@ -30,7 +30,7 @@
 
   <Comment Start="//" ></Comment>
   <Comment Start="/*" End="*/" Multiline="true" Folding="true"></Comment>
-  <Token Start="#" Attribute='DIRECTIVE'> </Token>
+  <Token Start="#" End="" Attribute='DIRECTIVE'> </Token>
   <Token CharsStart="0..9" Content = '0..9.' Attribute='NUMBER'> </Token>
    
   <Token Start="#" Attribute='Directive'> </Token>

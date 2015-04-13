@@ -47,7 +47,6 @@ begin
   //configure highlighters
   hlt1 := TSynFacilComplet.Create(self);  //my highlighter
   hlt1.LoadFromFile('../languages/ObjectPascal.xml');
-  if hlt1.Err <>'' then ShowMessage(hlt1.Err);
   hlt1.SelectEditor(ed1);
 
   ed1.OnUTF8KeyPress:=@ed1UTF8KeyPress;
@@ -92,7 +91,6 @@ var
   i: Integer;
 begin
   hlt1.LoadFromFile('../languages/'+TMenuItem(Sender).Caption);
-  if hlt1.Err <>'' then ShowMessage(hlt1.Err);
   ed1.Invalidate;
   //check the selected item
   for i:=0 to mnSyntax.Count-1 do mnSyntax.Items[i].Checked:=false;

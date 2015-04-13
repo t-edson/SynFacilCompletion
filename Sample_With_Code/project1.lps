@@ -4,7 +4,7 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="29">
+    <Units Count="30">
       <Unit0>
         <Filename Value="project1.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -225,8 +225,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="0"/>
-        <TopLine Value="1"/>
-        <CursorPos X="8" Y="11"/>
+        <TopLine Value="76"/>
+        <CursorPos X="6" Y="19"/>
         <UsageCount Value="31"/>
         <Bookmarks Count="1">
           <Item0 X="1" Y="1" ID="1"/>
@@ -257,11 +257,20 @@
         <CursorPos X="3" Y="207"/>
         <UsageCount Value="8"/>
       </Unit28>
+      <Unit29>
+        <Filename Value="..\..\SynFacilSyn 09.5\SynFacilHighlighter.pas"/>
+        <UnitName Value="SynFacilHighlighter"/>
+        <WindowIndex Value="0"/>
+        <TopLine Value="1"/>
+        <CursorPos X="15" Y="391"/>
+        <FoldState Value=" TL00PP piXikVG1I T4T02 T5W011 ppBpF0o TMrJ020h141K p0vg41122C161A1D1217]LtO2107111F1E231n]J-2]JA1313]N7]e]7]o423]! TCiCM73 T7j1G82 T8kF2W3 pkCl52O]H3rC05]Hj2jG0b4 pidjd04213]BZkK0T4[94jQ0D2]t5kM0L[I4ajJ0{1]AmaoF0c1 pnEi92F[b5n30{6F pj0mI0H1]JEM2N4]H7lB058];Xj70E5[!5E0I6]9YjH0h2[R5a0R3[j4jd06[R4g]a6[s4bjA0C T6rM05N[z4?Y04L T0raK3I[X4mcU3J[}K5Hn59]9dl3BZC])4lBnh7 plZk2ad6]I0i6Y7[}:5ah19[84iYS6[-4akaP38]ZKi7b2D[{@5FX5[a6DD5E[a4n6ABG[R4k7Y3H]j6oco4F[I5AN3B THtI472[Q4xH8P3 pE;92w p0xU491 TFik9225$"/>
+        <UsageCount Value="10"/>
+      </Unit29>
     </Units>
     <General>
       <ActiveWindowIndexAtStart Value="0"/>
     </General>
-    <JumpHistory Count="7" HistoryIndex="6">
+    <JumpHistory Count="8" HistoryIndex="7">
       <Position1>
         <Filename Value="unit1.pas"/>
         <Caret Line="73" Column="1" TopLine="56"/>
@@ -290,6 +299,10 @@
         <Filename Value="..\SynFacilCompletion.pas"/>
         <Caret Line="529" Column="16" TopLine="517"/>
       </Position7>
+      <Position8>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="58" Column="16" TopLine="38"/>
+      </Position8>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

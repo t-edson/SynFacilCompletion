@@ -1,17 +1,22 @@
 {
-SynFacilCompletion 0.7
+SynFacilCompletion 1.0b
 =======================
-Por Tito Hinostroza 14/09/2014
-* Se crea el procedimiento SeleccionarPalabra() en FormKeyDown(), para reemplazar a
-OnValidate(), y así pasar por sus limitaciones.
-* Se adecúa para poder trabajar con SynFacilSyn 0.9.5
+Por Tito Hinostroza 19/12/2014
+* Se adecúa para poder trabajar con SynFacilSyn 1.0.
+* Se generan los mensajes de error con excepciones.
+* Se eliminan las rutinas de análisis léxico (propiedades Range y State) porque
+ya están incluidas en TSynFacilSyn.
+
+Se crea la versión 1.0, para uniformizarse con la versión 1.0 del SynFacilSyn, que
+tiene cambios importantes con respecto a las versiones anteriores. Así las versiones
+0.X de SynFacilCompletion, será compatible con las versiones 0.X de SynFacilSyn.
 
 Descripción
 ============
 Unidad que expande al resaltador TSynFacilSyn, para que pueda soportar configuraciones
 de autocompletado de texto.
 
-Se usa de froma similar a SynFacilSyn. Se debe crear un resaltador, pero ahora de la
+Se usa de forma similar a SynFacilSyn. Se debe crear un resaltador, pero ahora de la
 clase TSynFacilComplet:
 
 uses ... , SynFacilCompletion;
@@ -57,23 +62,9 @@ interface
 uses
   Classes, SysUtils, Dialogs, XMLRead, DOM, LCLType, Graphics,
   SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
-  SynFacilHighlighter, SynCompletion;
+  SynFacilHighlighter, SynFacilBasic, SynCompletion;
 
 type
-  //Permite leer el estado actual del resaltador. Considera la posición actual de la
-  //exploración y el estado del rango, NO CONSIDERA el estado de los bloques de plegado.
-  TFaLexerState = record
-    //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
-    fLine      : PChar;         //puntero a línea de trabajo.
-    tamLin     : integer;       //tamaño de línea actual
-    //propiedades que van cambiando conforme se avanza en la exploración de la línea
-    posTok     : integer;       //para identificar el ordinal del token en una línea
-    BlkToClose : TFaSynBlock;   //bandera-variable para posponer el cierre de un bloque
-    posIni     : Integer;       //índice a inicio de token
-    posFin     : Integer;       //índice a siguiente token
-    fRange     : ^TTokSpec;    //para trabajar con tokens multilínea
-    fTokenID   : TSynHighlighterAttributes;  //Id del token actual
-  end;
 
   //Posiciones de cursor en el editor
   TPosicCursor=( pcUnknown,     //posición desconocida
@@ -117,31 +108,28 @@ type
       var SourceStart, SourceEnd: TPoint; KeyChar: TUTF8Char; Shift: TShiftState);
     procedure OnExecute(Sender: TObject);
     procedure FormUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
-  private
-    function GetState: TFaLexerState;
-    procedure SetState(state: TFaLexerState);
   protected
-    ed        : TSynEdit;         //referencia interna al editor
-    MenuComplet: TSynCompletionF; //menú contextual
+    ed        : TSynEdit;        //referencia interna al editor
+    MenuComplet: TSynCompletionF;//menú contextual
     AllItems  : TFaCompletItems; //lista de todas las palabras disponibles para el completado
     AvailItems: TStringList;  {Lista de palabras disponible para cargar en el menú de
                                 auto-completado}
-    PosiCursor: TPosicCursor;  //Posición del cursor
-    tok0      : TFaTokInfo;     //token actual del completado
-    Pos0      : TPoint;  //Posición incial del cursor donde se abrió la ventana de completado
-    IdentAct0 : string;         //IDentificador actual desde el inicio hasta el cursor
-    IdentAct  : string;         //Identificador actual completo
-    IdentAnt  : string;         //Identificador anterior
-    BloqueAct : TFaSynBlock;    //referecnia al bloque actual
+    PosiCursor: TPosicCursor;    //Posición del cursor
+    tok0      : TFaTokInfo;      //token actual del completado
+    Pos0      : TPoint;     //Posición incial del cursor donde se abrió la ventana de completado
+    IdentAct0 : string;          //IDentificador actual desde el inicio hasta el cursor
+    IdentAct  : string;          //Identificador actual completo
+    IdentAnt  : string;          //Identificador anterior
+    BloqueAct : TFaSynBlock;     //referecnia al bloque actual
 
-    tokens    : TATokInfo;      //lista de tokens actuales
-    iCurTok   : integer;        //índice al token actual
+    tokens    : TATokInfo;       //lista de tokens actuales
+    iCurTok   : integer;         //índice al token actual
 
-    utKey         : TUTF8Char;      //tecla pulsada
-    vKey          : word;           //código de tecla virtual
-    vShift        : TShiftState;    //estado de shift
+    utKey         : TUTF8Char;     //tecla pulsada
+    vKey          : word;          //código de tecla virtual
+    vShift        : TShiftState;   //estado de shift
     SpecIdentifiers: TArrayTokSpec;
-    SearchOnKeyUp : boolean;        //bandera de control
+    SearchOnKeyUp : boolean;       //bandera de control
     function CheckForClose: boolean;
     procedure FillCompletMenuFilteredBy(str: string);
     procedure OpenCompletionWindow;
@@ -165,9 +153,6 @@ type
     procedure AddCompItemL(list: string; blk: TFaSynBlock; posit: TPosicCursor=
       pcInIdent; before: string='');
     procedure CloseCompletionWindow;
-    //Utilidades para analizador léxico
-    property Range: TPtrTokEspec read fRange write fRange;
-    property State: TFaLexerState read GetState write SetState;
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -180,6 +165,15 @@ type
 
 implementation
 uses SynEditMiscProcs;
+
+const
+//  ERR_ATTRIB_NO_EXIST = 'Atributo %s no existe. (etiqueta <COMPLETION ...>)';
+//  ERR_INVAL_LAB_COMP = 'Etiqueta %s no válida para etiqueta <COMPLETION ...>';
+//  ERROR_LOADING_ = 'Error loading: ';
+
+  ERR_ATTRIB_NO_EXIST = 'Attribute %s doesn''t exist. (label <COMPLETION ...>)';
+  ERR_INVAL_LAB_COMP = 'Invalid label %s for  <COMPLETION ...>';
+  ERROR_LOADING_ = 'Error loading: ';
 
 function ReadExtenFromXML(XMLfile: string): string;
 //Lee las extensiones que tiene definidas un archivo de sintaxis.
@@ -505,9 +499,9 @@ var
   before: String;
 begin
   //carga los parámetros
-  tCasSen :=LeeAtrib(nodo, 'CaseSensitive');
-  tOpenKUp:=LeeAtrib(nodo, 'OpenOnKeyUp');
-  tSelOEnt:=LeeAtrib(nodo, 'SelectOnEnter');
+  tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
+  tOpenKUp:=ReadXMLParam(nodo, 'OpenOnKeyUp');
+  tSelOEnt:=ReadXMLParam(nodo, 'SelectOnEnter');
   //carga atributos leidos
   if tCasSen.hay then  //si se especifica
     CaseSensComp := tCasSen.bol  //se lee
@@ -521,15 +515,15 @@ begin
     nodo2 := nodo.ChildNodes[i];
     if UpCAse(nodo2.NodeName)='INCLUDE' then begin  //incluye lista de palabras por atributo
       //lee parámetros
-      tListAttr := LeeAtrib(nodo2,'Attribute');
-      tAftIden := LeeAtrib(nodo2,'AfterIdentif');
+      tListAttr := ReadXMLParam(nodo2,'Attribute');
+      tAftIden := ReadXMLParam(nodo2,'AfterIdentif');
       if tAftIden.hay then begin
         posit := pcAfterIdent;
         before := tAftIden.val;
       end else begin
         posit := pcInIdent;  //por defecto, solo en identificadores
       end;
-      if ValidateParams(nodo2, 'Attribute') then exit;
+      CheckXMLParams(nodo2, 'Attribute');  //puede generar excepción
       if tListAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
         if IsAttributeName(tListAttr.val)  then begin
@@ -541,12 +535,11 @@ begin
             end;
           end;
         end else begin  //atributo no existe
-          Err := 'Atributo '+ nodo2.NodeValue+ ' no existe. (etiqueta <COMPLETION ...>)';
-          exit;
+          raise ESynFacilSyn.Create(Format(ERR_ATTRIB_NO_EXIST,[nodo2.NodeValue]));
         end;
       end;
     end else if UpCAse(nodo2.NodeName)='KEYWORD' then begin  //definición alternativa de delimitador
-//      tTokPos := LeeAtrib(nodo2,'TokPos');
+//      tTokPos := ReadXMLParam(nodo2,'TokPos');
 //      if ValidarAtribs(nodo2, 'TokPos') then exit;
 //      //agrega la referecnia del bloque al nuevo token delimitador
 //      AddFinBlockToTok(trim(nodo2.TextContent), tTokPos.n, blq);
@@ -555,7 +548,7 @@ begin
       //Esta forma de declaración permite definir un orden en la carga de listas
       hayList :=true;   //marca para indicar que hay lista
       //lee parámetros
-      tAftIden := LeeAtrib(nodo2,'AfterIdentif');
+      tAftIden := ReadXMLParam(nodo2,'AfterIdentif');
       if tAftIden.hay then begin
         posit := pcAfterIdent;
         before := tAftIden.val;
@@ -571,9 +564,7 @@ begin
     end else if nodo2.NodeName='#text' then begin
       //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
     end else begin
-      Err := 'Etiqueta "' + nodo2.NodeName +
-             '" no válida para etiqueta <COMPLETION ...>';
-      exit;
+      raise ESynFacilSyn.Create(Format(ERR_INVAL_LAB_COMP,[nodo2.NodeName]));
     end;
   end;
   //verifica si se especificaron listas
@@ -594,8 +585,8 @@ var
   nodo: TDOMNode;
   nombre: WideString;
 begin
-  inherited LoadFromFile(Arc);
-  if Err<>'' then exit;
+  inherited LoadFromFile(Arc);  {Puede disparar excepción. El mesnajes de error generado
+                                incluye el nombre del archivo}
   OpenOnKeyUp := true;   //por defecto
   ReadSpecialIdentif;    //carga los identificadores especiales
   setlength(AllItems,0);  //inicia lista
@@ -608,18 +599,17 @@ begin
        nombre := UpCase(nodo.NodeName);
        if nombre = 'COMPLETION' then  begin
          //forma corta de <TOKEN ATTRIBUTE='KEYWORD'> lista </TOKEN>
-         ProcCompletionLabel(nodo);  //Carga Keywords
-       end;
-       if Err <> '' then begin
-          Err +=  ' <' + nombre + '> en: ' + Arc;  //completa mensaje
-          break;
+         ProcCompletionLabel(nodo);  //Puede generar error
        end;
     end;
     doc.Free;  //libera
   except
-    on E: Exception do begin
-      ShowMessage('Error cargando: ' + Arc + #13#10 + e.Message);
+    on e: Exception do begin
+      //Completa el mensaje con nombre de archivo, porque esta parte del código
+      //no lo incluye.
+      e.Message:=ERROR_LOADING_ + Arc + #13#10 + e.Message;
       doc.Free;
+      raise   //genera de nuevo
     end;
   end;
 end;
@@ -1056,38 +1046,6 @@ procedure TSynFacilComplet.CloseCompletionWindow;
 //Cierra la ventana del menú contextual
 begin
   MenuComplet.Deactivate;
-end;
-//Utilidades para analizadores léxicos
-function TSynFacilComplet.GetState: TFaLexerState;
-//Devuelve el estado actual del resaltador, pero sin considerar el estado de los bloque,
-//solo el estado de tokens y rangos.
-begin
-  //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
-  Result.fLine    := fLine;
-  Result.tamLin   := tamLin;
-  //propiedades que van cambiando conforme se avanza en la exploración de la línea
-  Result.posTok   := posTok;
-  Result.BlkToClose:= BlkToClose;
-  Result.posIni   := posIni;
-  Result.posFin   := posFin;
-  Result.fRange   := fRange;
-  Result.fTokenID := fTokenID;
-end;
-procedure TSynFacilComplet.SetState(state: TFaLexerState);
-//Configura el estado actual del resaltador, pero sin considerar el estado de los bloque,
-//solo el estado de tokens y rangos.
-//Al cambiar el estado actual del resaltador, se pierde el estado que tenía.
-begin
-  //propiedades fijadas al inicio de la línea y no cambian en toda la línea.
-  fLine      := state.fLine;
-  tamLin     := state.tamLin;
-  //propiedades que van cambiando conforme se avanza en la exploración de la línea
-  posTok     := state.posTok;
-  BlkToClose := state.BlkToClose;
-  posIni     := state.posIni;
-  posFin     := state.posFin;
-  fRange     := state.fRange;
-  fTokenID   := state.fTokenID;
 end;
 constructor TSynFacilComplet.Create(AOwner: TComponent);
 begin
