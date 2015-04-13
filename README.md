@@ -13,8 +13,9 @@ In the XML file, it's added the label "COMPLETION" for defining a list of words 
 
 ## Using in a program.
 
-There are 2 units for to include  when using this library:
+There are 3 units for to include  when using this library:
 
+* SynFacilBasic.pas  (version 1.0 or higher)
 * SynFacilHighlighter.pas  (version 1.0 or higher)
 * SynFacilCompletion.pas
 
@@ -62,6 +63,8 @@ end;
 For to close the window of the completion menu, we must to call to the method:  CloseCompletionWindow().
 
 In the XML file, we must include the list of word for to use in the completion menu. This list must be included in the label COMPLETION. 
+
+## Defining the list of words for completion
 
 The next XML file, define three words for the completion menu:
 
