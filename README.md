@@ -15,7 +15,7 @@ In the XML file, it's added the label "COMPLETION" for defining a list of words 
 
 There are 2 units for to include  when using this library:
 
-* SynFacilHighlighter.pas  (version 0.9.4 or higher)
+* SynFacilHighlighter.pas  (version 1.0 or higher)
 * SynFacilCompletion.pas
 
 Only the unit 'SynFacilCompletion' is necessary to include in the section USES of the programs. 'SynFacilHighlighter' is used by 'SynCompletionFacil' and must be accessible.
