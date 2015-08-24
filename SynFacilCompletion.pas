@@ -6,6 +6,7 @@ Por Tito Hinostroza 19/12/2014
 * Se generan los mensajes de error con excepciones.
 * Se eliminan las rutinas de análisis léxico (propiedades Range y State) porque
 ya están incluidas en TSynFacilSyn.
+* Se agrega el procesamiento de la eqtiqueta "Block", en la sintaxis del archivo XML.
 
 Se crea la versión 1.0, para uniformizarse con la versión 1.0 del SynFacilSyn, que
 tiene cambios importantes con respecto a las versiones anteriores. Así las versiones
@@ -56,9 +57,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-
 interface
-
 uses
   Classes, SysUtils, Dialogs, XMLRead, DOM, LCLType, Graphics,
   SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
@@ -76,10 +75,10 @@ type
   TFaCompletItem = record
     item   : string;       //etiqueta a mostrar en el menú
     content: string;       //contenido a reemplazar
+    tokTyp : TSynHighlighterAttributes;  //token donde es válida la palabra
     block  : TFaSynBlock;  //bloque donde es válida la palabra
     posit  : TPosicCursor; //Posición del cursor
     before : string;       //palabra anterior
-//    casesen: boolean;    //indica si es sensible a la caja
   end;
   TFaCompletItems = array of TFaCompletItem;
 
@@ -173,6 +172,7 @@ const
 
   ERR_ATTRIB_NO_EXIST = 'Attribute %s doesn''t exist. (label <COMPLETION ...>)';
   ERR_INVAL_LAB_COMP = 'Invalid label %s for  <COMPLETION ...>';
+  ERR_INVAL_BLK_NAME = 'Invalid block name.';
   ERROR_LOADING_ = 'Error loading: ';
 
 function ReadExtenFromXML(XMLfile: string): string;
@@ -194,7 +194,7 @@ begin
     doc.Free;  //libera
   except
     on E: Exception do begin
-      ShowMessage('Error cargando: ' + XMLfile + #13#10 + e.Message);
+      ShowMessage(ERROR_LOADING_ + XMLfile + #13#10 + e.Message);
       doc.Free;
     end;
   end;
@@ -497,6 +497,9 @@ var
   tAftIden: TFaXMLatrib;
   posit: TPosicCursor;
   before: String;
+  tBlock: TFaXMLatrib;
+  blk : TFaSynBlock;
+  success: boolean;
 begin
   //carga los parámetros
   tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
@@ -549,17 +552,27 @@ begin
       hayList :=true;   //marca para indicar que hay lista
       //lee parámetros
       tAftIden := ReadXMLParam(nodo2,'AfterIdentif');
+      tBlock := ReadXMLParam(nodo2,'Block');
       if tAftIden.hay then begin
         posit := pcAfterIdent;
         before := tAftIden.val;
       end else begin
         posit := pcInIdent;  //por defecto, solo en identificadores
       end;
+      CheckXMLParams(nodo2, 'AfterIdentif Block');  //puede generar excepción
+      if tBlock.hay then begin
+        blk := SearchBlock(tBlock.val, success);
+        if not success then begin
+          raise ESynFacilSyn.Create(ERR_INVAL_BLK_NAME);
+        end;
+      end else begin
+        blk := nil;
+      end;
       //ve contenido
       listIden := nodo2.TextContent;
       if listIden<>'' then begin
          //Se ha especificado lista de palabras. Los carga en AllItems[]
-         AddCompItemL(listIden,nil,posit, before);
+         AddCompItemL(listIden, blk, posit, before);
       end;
     end else if nodo2.NodeName='#text' then begin
       //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
@@ -574,7 +587,7 @@ begin
     listIden := nodo.TextContent;
     if listIden<>'' then begin
        //Se ha especificado lista de palabras directamente. Los carga en AllItems[]
-       AddCompItemL(listIden,nil);
+       AddCompItemL(listIden, nil);
     end;
   end;
 end;
@@ -753,13 +766,19 @@ var
     end;
     Result := hubo;  //si hubo
   end;
+  function ItemInBlock(i: Integer): boolean;  inline;
+  {Indica si el item de AllItems[], cumple la condición del bloque actual}
+  begin
+    Result := (AllItems[i].block = nil) or //es válido para todos los bloques
+              (AllItems[i].block = BloqueAct);
+  end;
 begin
   //limpìa listas
- AvailItems.Clear;
+  AvailItems.Clear;
   MenuComplet.ItemList.Clear;  //inicia en cero,  por si no se llena.
   //Analiza entorno de cursor
   MiraEntornoCursor;  //actualiza IdentAct, IdentAnt, BloqueAct, PosiCursor
-  //Veriifca si se va a abrir la lista por tecla común o por un atajo
+  //Verifica si se va a abrir la lista por tecla común o por un atajo
   if MenuComplet.CurrentString='<KeyUp>' then begin
 //    debugln('Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
     if (vKey=VK_TAB) and (vShift=[]) then begin
@@ -786,7 +805,7 @@ begin
       end else begin
         //caso general
         for i:=0 to high(AllItems) do begin
-          if (AllItems[i].block = nil) and //es válido para todos los bloques
+          if ItemInBlock(i) and
              (AllItems[i].posit = pcInIdent) then  //y en identificadores
             AvailItems.Add(AllItems[i].item);
         end;
@@ -802,7 +821,7 @@ begin
     end;
   pcAfterIdent: begin   //después de identificador
       for i:=0 to high(AllItems) do begin
-        if (AllItems[i].block = nil) and //es válido para todos los bloques
+        if ItemInBlock(i) and
            HasBefore(AllItems[i], IdentAnt) then
           AvailItems.Add(AllItems[i].item);
       end;

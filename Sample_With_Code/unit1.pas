@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, Menus, Dialogs,
   SynEdit, SynEditHighlighter, LCLType, Lazlogger,
-  SynFacilHighlighter, SynFacilCompletion;
+  SynFacilBasic, SynFacilHighlighter, SynFacilCompletion;
 
 type
 
@@ -50,8 +50,8 @@ begin
   hlt1.ClearSpecials;               //para empezar a definir tokens
   hlt1.CreateAttributes;            //Limpia atributos
   hlt1.ClearMethodTables;           //limpìa tabla de métodos
-  hlt1.DefTokIdentif('[$A..Za..z_]', 'A..Za..z0..9_');
-  hlt1.DefTokContent('[0..9]', '0..9xabcdefXABCDEF', '', hlt1.tkNumber);
+  hlt1.DefTokIdentif('[$A-Za-z_]', '[A-Za-z0-9_]*');
+  hlt1.DefTokContent('[0-9]', '[0..9xa-fXA-F]', hlt1.tkNumber);
   hlt1.AddIdentSpecList('begin end var const type', hlt1.tkKeyword);
   hlt1.AddIdentSpecList('case class if else exit unit', hlt1.tkKeyword);
   hlt1.AddIdentSpecList('for function procedure property', hlt1.tkKeyword);
@@ -59,7 +59,6 @@ begin
   hlt1.DefTokDelim('//','', hlt1.tkComment);
   hlt1.DefTokDelim('{','}', hlt1.tkComment, tdMulLin);
   hlt1.Rebuild;  //reconstruye
-  if hlt1.Err <>'' then ShowMessage(hlt1.Err);
   //define completion
   hlt1.CompletionOn:=true;
   hlt1.OpenOnKeyUp:=true;
@@ -110,7 +109,6 @@ var
   i: Integer;
 begin
   hlt1.LoadFromFile('../languages/'+TMenuItem(Sender).Caption);
-  if hlt1.Err <>'' then ShowMessage(hlt1.Err);
   ed1.Invalidate;
   //check the selected item
   for i:=0 to mnSyntax.Count-1 do mnSyntax.Items[i].Checked:=false;

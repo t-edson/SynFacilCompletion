@@ -26,7 +26,7 @@
   <Attribute Name="Keyword" Style="b"> </Attribute>
   <Attribute Name="Comment" ForeCol="#00B0F7"> </Attribute>
   <Attribute Name="Number" ForeCol="#DF7400"> </Attribute>
-  <Attribute Name="Directive" ForeCol="#642EFE"> </Attribute>
+  <Attribute Name="Directive" ForeCol="#FE2EF7"> </Attribute>
 
   <Comment Start="//" ></Comment>
   <Comment Start="/*" End="*/" Multiline="true" Folding="true"></Comment>
