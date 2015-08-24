@@ -1,6 +1,6 @@
 {
-SynFacilCompletion 1.0b
-=======================
+SynFacilCompletion 1.0
+======================
 Por Tito Hinostroza 19/12/2014
 * Se adecúa para poder trabajar con SynFacilSyn 1.0.
 * Se generan los mensajes de error con excepciones.
