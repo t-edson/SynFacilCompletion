@@ -1,4 +1,4 @@
-SynFacilCompletion 1.0
+SynFacilCompletion 1.1b
 ======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -66,6 +66,8 @@ In the XML file, we must include the list of word for to use in the completion m
 
 ## Defining the list of words for completion
 
+The list of words for compeltion, is defined in the same XML where the syntax is defined.
+
 The next XML file, define three words for the completion menu:
 
 ```
@@ -81,6 +83,14 @@ The next XML file, define three words for the completion menu:
   
 </Language>
 ```
+This is the simpler way for to define a list of words for the completion menu. It will be shown, when a key is pressed, if this option is enabled.
+
+There is some parameters for to include on the tag <Completion>. They are:
+
+* CaseSensitive -> True or false. Define if the completion function use or not the case of the text for to work.
+* OpenOnKeyUp -> Enabled if the completion menu is shown when a Key is pressed (released). It's enabled by default.
+* SelectOnEnter -> Let to select a word of the completion menu, using the <enter> key.
+
 
 ## Using all the Keywords for completion
 
