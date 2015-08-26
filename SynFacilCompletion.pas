@@ -78,14 +78,16 @@ type
   TFaTPatternElementKind = (
     pak_none,      //tipo no definido
     pak_String,    //es literal cadena
-    pak_Identif,   //es token identificador
-    pak_TokTyp     //es un tipo específico de token
+    pak_Identif,   //es token identificador (tkKeyword, tkIndetifier, ...)
+    pak_NoIdentif, //no es token identificador
+    pak_TokTyp,    //es un tipo específico de token
+    pak_NoTokTyp   //no es un tipo específico de token
   );
   //Elemento del patrón
   TFaPatternElement = record
     patKind: TFaTPatternElementKind;
     str    : string;          //valor, cuando es del tipo pak_String
-    toktyp : TSynHighlighterAttributes;  //valor cuando es de tipo pak_TokTyp
+    toktyp : TSynHighlighterAttributes;  //valor cuando es de tipo pak_TokTyp o pak_NoTokTyp
   end;
 
   //Patrón de coincidencia para abrir la lista de completado
@@ -585,6 +587,8 @@ begin
       end;
     end else if nodo2.NodeName='#text' then begin
       //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
+    end else if LowerCase(nodo2.NodeName) = '#comment' then begin
+      //solo para evitar que de mensaje de error
     end else begin
       raise ESynFacilSyn.Create(Format(ERR_INVAL_LAB_COMP,[nodo2.NodeName]));
     end;
@@ -703,6 +707,7 @@ begin
   end;
   tok0 := tokens[icurTok];    //lee token actual}
   iCurTok := curTok;
+  tok0 := tokens[icurTok];    //lee token actual
   CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
   inMidTok := tokens[curTok].posIni+1 <> CurX;
 
@@ -774,6 +779,22 @@ const
       if upcase(strElem) = upcase(allIdentif) then begin
          //es de tipo "Todos los identificadores"
          patEle.patKind := pak_Identif;
+      end else if strElem[1] = '!' then begin
+        //debe ser de tipo "No es ..."
+        strElem := copy(strElem,2,length(strElem)); //quita caracter
+        if upcase(strElem) = upcase(allIdentif) then begin
+           //es de tipo "Todos los identificadores"
+           patEle.patKind := pak_NoIdentif;
+        end else begin
+           //debe ser un nombre de tipo de token
+           if IsAttributeName(strElem) then begin  //es
+             patEle.patKind := pak_NoTokTyp;
+             patEle.toktyp := GetAttribByName(strElem);   //tipo de atributo
+           end else begin  //no es, debe haber algún error
+             success := false;
+             exit;
+           end;
+        end;
       end else begin
          //debe ser un nombre de tipo de token
          if IsAttributeName(strElem) then begin  //es
@@ -939,8 +960,14 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
     pak_Identif: begin  //*** Es identificador
       Result := tokens[itok].IsIDentif;
     end;
+    pak_NoIdentif: begin
+      Result := not tokens[itok].IsIDentif;
+    end;
     pak_TokTyp: begin   //*** Es un tipo específico de token
       Result := pe.toktyp = tokens[itok].TokTyp;
+    end;
+    pak_NoTokTyp: begin   //*** Es un tipo específico de token
+      Result := not (pe.toktyp = tokens[itok].TokTyp);
     end;
     end;
   end;
