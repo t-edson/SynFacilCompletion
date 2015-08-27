@@ -157,8 +157,9 @@ type
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
     procedure LookAroundCursor; virtual;
-  private  //manejo de patrones
+  private  //manejo de patrones de apertura
     OpenPatterns: array of TFaOpenPattern;  //lista de patrones de apertura
+    procedure ClearOpenPatterns;
     function AddOpenPattern(AfterPattern, BeforePattern: string): integer;
     procedure AddToOpenPatternsL(np: integer; list: string; blk: TFaSynBlock);
   public
@@ -511,7 +512,7 @@ var
   nodo2: TDOMNode;
   tListAttr: TFaXMLatrib;
   tipTok: TSynHighlighterAttributes;
-  hayList: Boolean;
+  hayList, hayOpen: Boolean;
   tOpenKUp: TFaXMLatrib;
   tSelOEnt: TFaXMLatrib;
   tBlock: TFaXMLatrib;
@@ -532,6 +533,7 @@ begin
   if tOpenKUp.hay then OpenOnKeyUp:=tOpenKUp.bol;
   if tSelOEnt.hay then SelectOnEnter:=tSelOEnt.bol;
   hayList := false;  //inicia bandera
+  hayOpen := false;  //inicia bandera
   ////////// explora nodos hijos //////////
   for i := 0 to nodo.ChildNodes.Count-1 do begin
     nodo2 := nodo.ChildNodes[i];
@@ -555,6 +557,7 @@ begin
       end;
     end else if UpCAse(nodo2.NodeName)='OPENON' then begin  //evento de apertura
       //lee parámetros
+      hayOpen :=true;   //marca para indicar que hay lista
       tBefPatt := ReadXMLParam(nodo2,'BeforePattern');
       tAftPatt := ReadXMLParam(nodo2,'AfterPattern');
       CheckXMLParams(nodo2, 'BeforePattern AfterPattern');  //puede generar excepción
@@ -594,8 +597,8 @@ begin
     end;
   end;
   //verifica si se especificaron listas
-  if not hayList then begin
-    //No se definieron listas.
+  if not hayList and not hayOpen then begin
+    //No se definieron listas ni eventos.
     //Se verifica si hay lista en el cuerpo de <completion></completion>
     listIden := nodo.TextContent;
     if listIden<>'' then begin
@@ -616,6 +619,7 @@ begin
   OpenOnKeyUp := true;   //por defecto
   ReadSpecialIdentif;    //carga los identificadores especiales
   setlength(AllItems,0);  //inicia lista
+  ClearOpenPatterns;         //limpia patrones de apertura
   try
     ReadXMLFile(doc, Arc);  //carga archivo
     //procede a la carga de la etiqueta <COMPLETION>
@@ -718,6 +722,11 @@ begin
   BloqueAct := tok0.curBlk;  //devuelve bloque
 end;
 
+procedure TSynFacilComplet.ClearOpenPatterns;
+{Elimina los patrones de apertura}
+begin
+  setlength(OpenPatterns,0);
+end;
 function TSynFacilComplet.AddOpenPattern(AfterPattern, BeforePattern: string): integer;
 {Permite agregar un patrón de apertura}
 const
@@ -1047,7 +1056,7 @@ begin
   end;
   //Analiza entorno y carga AvailItems[], con la lista de completado que corresponda
   //Los items en AllItems[], se cargan siempre
-  for i:=0 to high(AllItems) do begin
+ for i:=0 to high(AllItems) do begin
     if ItemInBlock(i) then begin //y en identificadores
       AvailItems.Add(AllItems[i].item);
     end;
@@ -1299,7 +1308,7 @@ end;
 constructor TSynFacilComplet.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  setlength(OpenPatterns,0);
+  ClearOpenPatterns;
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
   SelectOnEnter := true;
