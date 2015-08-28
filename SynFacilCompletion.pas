@@ -111,7 +111,8 @@ type
     nBef : integer;   //número de elementos válidos haste el ítem 0 (puede ser 0,1,2 o 3)
     nAft : integer;   //número de elementos válidos depués del ítem 0 (puede ser 0 o 1)
     Items: array of TFaCompletItem; //lista de las palabras disponibles para el completado
-    filter: TFaFilterList
+    filter: TFaFilterList;
+    StpScan: boolean;  //indica si debe detener la exploración después de uan coincidencia
   end;
 
 type
@@ -144,17 +145,15 @@ type
     AllItems  : TFaCompletItems; //lista de todas las palabras disponibles para el completado
     AvailItems: TStringList;  {Lista de palabras disponible para cargar en el menú de
                                 auto-completado}
-    tok0      : TFaTokInfo;      //token actual del completado
-    Pos0      : TPoint;     //Posición incial del cursor donde se abrió la ventana de completado
+    tokens   : TATokInfo;     //lista de tokens actuales
+    iTok0    : integer;       //índice al token actual
+    inMidTok : boolean;       //indica si el cursor está en medio de un token
+    tok0     : ^TFaTokInfo;   //referencias al token actual.
+    tok_1    : ^TFaTokInfo;   //referencias al token anterior.
+    Pos0     : TPoint;        //Posición incial del cursor donde se abrió la ventana de completado
 
-    IdentAct0 : string;          //IDentificador actual desde el inicio hasta el cursor
-    IdentAct  : string;          //Identificador actual completo
-    IdentAnt  : string;          //Identificador anterior
-    BloqueAct : TFaSynBlock;     //referecnia al bloque actual
-
-    tokens    : TATokInfo;       //lista de tokens actuales
-    iCurTok   : integer;         //índice al token actual
-    inMidTok  : boolean;         //indica si el cursor está en medio de un token
+    IdentAct0: string;        //Identificador actual desde el inicio hasta el cursor
+    curBlock : TFaSynBlock;   //referencia al bloque actual
 
     utKey         : TUTF8Char;     //tecla pulsada
     vKey          : word;          //código de tecla virtual
@@ -171,9 +170,9 @@ type
     OpenPatterns: array of TFaOpenPattern;  //lista de patrones de apertura
     procedure ClearOpenPatterns;
     function AddOpenPattern(AfterPattern, BeforePattern: string;
-      filter: TFaFilterList): integer;
+      filter: TFaFilterList; StopScan: boolean): integer;
     procedure AddToOpenPatternsL(np: integer; list: string; blk: TFaSynBlock);
-    function StrToFilter(str: string): TFaFilterList;
+    procedure ProcXMLOpenOn(nodo: TDOMNode);
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
     SelectOnEnter: boolean;   //habilita la selección con enter
@@ -204,10 +203,15 @@ uses SynEditMiscProcs;
 
 const
 //  ERR_ATTRIB_NO_EXIST = 'Atributo %s no existe. (etiqueta <COMPLETION ...>)';
+//  ERR_FILTER_NO_EXIST = 'Filtro %s no existe. (etiqueta <OpenOn ...>)';
 //  ERR_INVAL_LAB_COMP = 'Etiqueta %s no válida para etiqueta <COMPLETION ...>';
+//  ERR_INVAL_BLK_NAME = 'Nombre de bloque inválido.';
 //  ERROR_LOADING_ = 'Error loading: ';
+//  ERR_PAR_BEF_PATT = 'Error en parámetro "BeforePattern"';
+//  ERR_PAR_AFT_PATT = 'Error en parámetro "AfterPattern"';
 
   ERR_ATTRIB_NO_EXIST = 'Attribute %s doesn''t exist. (label <COMPLETION ...>)';
+  ERR_FILTER_NO_EXIST = 'Filter %s doesn''t exist. (label <OpenOn ...>)';
   ERR_INVAL_LAB_COMP = 'Invalid label %s for  <COMPLETION ...>';
   ERR_INVAL_BLK_NAME = 'Invalid block name.';
   ERROR_LOADING_ = 'Error loading: ';
@@ -514,9 +518,41 @@ begin
   end;
   lst.Destroy;
 end;
-function TSynFacilComplet.StrToFilter(str: string): TFaFilterList;
+procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
+{Procesa el bloque <OpenOn ... >}
+var
+  listIden: string;
+  tBefPatt, tAftPatt: TFaXMLatrib;
+  np: Integer;
+  filt: TFaFilterList;
+  tFilPatt, fStpScan: TFaXMLatrib;
 begin
-
+  tBefPatt := ReadXMLParam(nodo,'BeforePattern');
+  tAftPatt := ReadXMLParam(nodo,'AfterPattern');
+  tFilPatt := ReadXMLParam(nodo,'FilterBy');
+  fStpScan := ReadXMLParam(nodo,'StopScan');
+  CheckXMLParams(nodo, 'BeforePattern AfterPattern FilterBy StopScan');  //puede generar excepción
+  if tFilPatt.hay then begin
+    case UpCase(tFilPatt.val) of
+    'NONE'          : filt := fil_None;
+    'BYCURTOK'      : filt := fil_ByCurTok;
+    'BYLASTTOK'     : filt := fil_ByLastTok;
+    'BYLASTTOKPART' : filt := fil_ByLastTokPart;
+    'BYCURIDENT'    : filt := fil_ByCurIdent;
+    'BYCURIDENTPART': filt := fil_ByCurIdentPart;
+    else
+      raise ESynFacilSyn.Create(Format(ERR_FILTER_NO_EXIST,[tFilPatt.val]));
+    end;
+  end else begin
+    filt := fil_ByLastTokPart;   //valro por defecto
+  end;
+  np := AddOpenPattern(tAftPatt.val, tBefPatt.val, filt, fStpScan.bol);
+  //verifica contenido
+  listIden := nodo.TextContent;
+  if listIden<>'' then begin
+    //Se ha especificado lista de palabras. Los carga
+    AddToOpenPatternsL(np, listIden, nil);
+  end;
 end;
 procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //Procesa la etiqueta <Completion>, que es el bloque que define todo el sistema de
@@ -534,9 +570,6 @@ var
   tBlock: TFaXMLatrib;
   blk : TFaSynBlock;
   success: boolean;
-  tBefPatt, tAftPatt, tFilPatt: TFaXMLatrib;
-  np: Integer;
-  filt: TFaFilterList;
 begin
   //carga los parámetros
   tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
@@ -575,22 +608,7 @@ begin
     end else if UpCAse(nodo2.NodeName)='OPENON' then begin  //evento de apertura
       //lee parámetros
       hayOpen :=true;   //marca para indicar que hay lista
-      tBefPatt := ReadXMLParam(nodo2,'BeforePattern');
-      tAftPatt := ReadXMLParam(nodo2,'AfterPattern');
-      tFilPatt := ReadXMLParam(nodo2,'FilterBy');
-      CheckXMLParams(nodo2, 'BeforePattern AfterPattern FilterBy');  //puede generar excepción
-      if tFilPatt.hay then begin
-        filt := StrToFilter(tFilPatt.val);
-      end else begin
-        filt := fil_ByLastTokPart;   //valro por defecto
-      end;
-      np := AddOpenPattern(tAftPatt.val, tBefPatt.val, filt);
-      //verifica contenido
-      listIden := nodo2.TextContent;
-      if listIden<>'' then begin
-        //Se ha especificado lista de palabras. Los carga
-        AddToOpenPatternsL(np, listIden, nil);
-      end;
+      ProcXMLOpenOn(nodo2);  //puede generar excepción.
     end else if UpCAse(nodo2.NodeName)='LIST' then begin  //forma alternativa para lista de palabras
       //Esta forma de declaración permite definir un orden en la carga de listas
       hayList :=true;   //marca para indicar que hay lista
@@ -708,41 +726,31 @@ begin
 end;
 procedure TSynFacilComplet.LookAroundCursor;
 {Analiza el estado del cursor en el editor. Se supone que se debe llamar, después de
- actualizar el editor. Actualiza: PosiCursor, IdentAct, IdentAct0, IdentAnt, BloqueAct }
+ actualizar el editor. Actualiza: PosiCursor, IdentAct0, curBlock, tok0, y tok_1.
+ Utiliza punteros para tok0, y tok_1, para evitar perder tiempo creando copias.}
 var
-  curTok: integer;
   CurX: Integer;
 begin
   //valores por defecto
-  IdentAct:='';
   IdentAct0:='';
-  IdentAnt:='';
-  BloqueAct := nil;
+  curBlock := nil;
   //explora la línea con el resaltador
-  self.ExploreLine(ed.CaretXY, tokens, curTok);
-  if curTok=-1 then exit;   //no ubica al token actual
-{  //Ubica el token de trabajo. Puede ser el actual o el anterior
-  //ve si estamos al inicio de un token
+  self.ExploreLine(ed.CaretXY, tokens, iTok0);
+  if iTok0=-1 then exit;   //no ubica al token actual
+  tok0 := @tokens[iTok0];    //lee token actual token[0]
   CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
-  if tokens[curTok].posIni+1 = CurX then begin
-    //Estamos justo al inicio del token (después de un token)
-    iCurTok:=curTok-1;  //toma el anterior
-    if iCurTok<0 then iCurTok := 0; //a menos que sea el primero
-  end else begin
-    //estamos en medio de un token (no necesariamente identificador)
-    iCurTok:=curTok;  //toma el mismo
+  inMidTok := tokens[iTok0].posIni+1 <> CurX;  //actualiza bandera
+  //actualiza tok_1
+  if inMidTok then
+    tok_1 := @tokens[iTok0]
+  else begin
+    if iTok0>0 then tok_1 := @tokens[iTok0-1]
+    else tok_1 := nil;
   end;
-  tok0 := tokens[icurTok];    //lee token actual}
-  iCurTok := curTok;
-  tok0 := tokens[icurTok];    //lee token actual
-  CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
-  inMidTok := tokens[curTok].posIni+1 <> CurX;
 
-  //captura "IdentAct0" y "BloqueAct"
-  CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
-  IdentAct0:= copy(tok0.txt,1,CurX-tok0.posIni-1);
-  IdentAct:=tok0.txt;
-  BloqueAct := tok0.curBlk;  //devuelve bloque
+  //captura "IdentAct0" y "curBlock"
+  IdentAct0:= copy(tok0^.txt,1,CurX-tok0^.posIni-1);
+  curBlock := tok0^.curBlk;  //devuelve bloque
 end;
 
 procedure TSynFacilComplet.ClearOpenPatterns;
@@ -751,7 +759,7 @@ begin
   setlength(OpenPatterns,0);
 end;
 function TSynFacilComplet.AddOpenPattern(AfterPattern, BeforePattern: string;
-                                         filter: TFaFilterList): integer;
+                                filter: TFaFilterList; StopScan: boolean): integer;
 {Permite agregar un patrón de apertura}
 const
   wordChars = ['a'..'z','0'..'9','A'..'Z','_'];
@@ -876,7 +884,7 @@ begin
     opPat.nBef:=0;  //no hay elementos válidos
   end else begin
     //Caso común
-     //extrae y guarda los elementos
+    //extrae y guarda los elementos
     elem := ExtractItem(AfterPattern);
     nelem := 0;  //contedor
     while (elem<>'#') and (elem<>'') and (nelem<=3) do begin
@@ -926,7 +934,7 @@ begin
   Result := AddPattern(opPat);  //agrega
 end;
 procedure TSynFacilComplet.AddToOpenPatternsL(np: integer; list: string;
-                                                 blk: TFaSynBlock);
+                                              blk: TFaSynBlock);
 {Agrega una lista de palabras al patrón indicado por el índice "n". }
 var
   lst: TStringList;
@@ -973,7 +981,7 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
   {Indica si el item de AllItems[], cumple la condición del bloque actual}
   begin
     Result := (AllItems[i].block = nil) or //es válido para todos los bloques
-              (AllItems[i].block = BloqueAct);
+              (AllItems[i].block = curBlock);
   end;
   function MatchPatternElement(pe: TFaPatternElement; itok: integer): boolean;
   {Verifica el elemento de un patrón, coincide con un token de tokens[]}
@@ -1014,29 +1022,29 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
     end;
     1: begin  //hay elem[-1]
         if inMidTok then begin
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0);
         end else begin  //está al inicio de un token
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok-1);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0-1);
         end;
     end;
     2: begin  //hay elem[-2],elem[-1]
         if inMidTok then begin
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok) and
-                    MatchPatternElement(opPat.elem[-2], iCurTok-1);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0) and
+                    MatchPatternElement(opPat.elem[-2], iTok0-1);
         end else begin  //está al inicio de un token
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok-1) and
-                    MatchPatternElement(opPat.elem[-2], iCurTok-2);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0-1) and
+                    MatchPatternElement(opPat.elem[-2], iTok0-2);
         end;
     end;
     3: begin  //hay elem[-3],elem[-2],elem[-1]
         if inMidTok then begin
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok) and
-                    MatchPatternElement(opPat.elem[-2], iCurTok-1) and
-                    MatchPatternElement(opPat.elem[-3], iCurTok-2);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0) and
+                    MatchPatternElement(opPat.elem[-2], iTok0-1) and
+                    MatchPatternElement(opPat.elem[-3], iTok0-2);
         end else begin  //está al inicio de un token
-          Result := MatchPatternElement(opPat.elem[-1], iCurTok-1) and
-                    MatchPatternElement(opPat.elem[-2], iCurTok-2) and
-                    MatchPatternElement(opPat.elem[-3], iCurTok--3);
+          Result := MatchPatternElement(opPat.elem[-1], iTok0-1) and
+                    MatchPatternElement(opPat.elem[-2], iTok0-2) and
+                    MatchPatternElement(opPat.elem[-3], iTok0--3);
         end;
     end;
     end;
@@ -1050,7 +1058,7 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
     end;
     1: begin  //hay elem[0]
         //es independiente de "inMidTok"
-        Result := MatchPatternElement(opPat.elem[0], iCurTok);
+        Result := MatchPatternElement(opPat.elem[0], iTok0);
       end;
     end;
   end;
@@ -1061,10 +1069,11 @@ begin
   //limpìa listas
   AvailItems.Clear;
   //Analiza entorno de cursor
-  LookAroundCursor;  //actualiza IdentAct, IdentAnt, BloqueAct, PosiCursor
-  //Verifica si se va a abrir la lista por tecla común o por un atajo
+  LookAroundCursor;  //actualiza tok0, tok_1, curBlock, PosiCursor
+  MenuComplet.ItemList.Clear;   //inicia menú
+  //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
   if MenuComplet.CurrentString='<KeyUp>' then begin
-//    debugln('Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
+    debugln('Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
     if (vKey=VK_TAB) and (vShift=[]) then begin
       //esta tecla es válida
     end else begin
@@ -1092,6 +1101,7 @@ begin
       for i:=0 to high(opPat.Items) do begin  //agrega sus ítems
         AvailItems.Add(opPat.Items[i].item);
       end;
+      if opPat.StpScan then break;
     end;
   end;
   //Aplica Filtro
@@ -1104,7 +1114,7 @@ begin
       MenuComplet.ItemList.Add('');
     end;
     //aprovechamos para guardar la posición de inicio del token identificador
-    Pos0 := Point(tok0.posIni+1, ed.CaretY);   //guarda la posición de origen del token actual
+    Pos0 := Point(tok0^.posIni+1, ed.CaretY);   //guarda la posición de origen del token actual
 //    debugln('Fij.Pos0.X='+IntToStr(Pos0.x));
   end;
 end;
@@ -1124,11 +1134,11 @@ begin
 //  ShowMessage(tok0.txt);
   NewWord := MenuComplet.ItemList[MenuComplet.Position];
   //calcula intervalo del token
-  Pos1 := Point(tok0.posIni+1,ed.CaretY);
-  Pos2 := Point(tok0.posIni+tok0.length+1,ed.CaretY);
+  Pos1 := Point(tok0^.posIni+1,ed.CaretY);
+  Pos2 := Point(tok0^.posIni+tok0^.length+1,ed.CaretY);
 //  ShowMessage(IntToStr(tok0.posIni+1)+','+IntToStr(tok0.posIni+tok0.length+1)) ;
   ed.TextBetweenPoints[Pos1,Pos2] := NewWord;  //usa TextBetweenPoints(), para poder deshacer
-  ed.LogicalCaretXY :=Point(tok0.posIni+length(NewWord)+1,ed.CaretY);  //mueve cursor
+  ed.LogicalCaretXY :=Point(tok0^.posIni+length(NewWord)+1,ed.CaretY);  //mueve cursor
   CloseCompletionWindow;  //cierra
 end;
 begin
@@ -1286,7 +1296,8 @@ begin
 //debugln('  FilCompl:'+str);
   //Genera la lista que coincide
   { TODO : Este proceso es lento si se actualizan muchas opciones en la lista }
-  MenuComplet.ItemList.Clear;
+  MenuComplet.ItemList.Clear;  {Limpia todo aquí porque eset método es llamado desde distintos
+                                puntos del programa.}
   if str='*' then begin  //caso comodín
     for i:=0 to AvailItems.Count-1 do begin  //agrega todo
        MenuComplet.ItemList.Add(AvailItems[i]);
