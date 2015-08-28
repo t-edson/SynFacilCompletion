@@ -73,6 +73,15 @@ type
   end;
   TFaCompletItems = array of TFaCompletItem;
 
+  //Filtros que se pueden aplicar a la lista mostrada
+  TFaFilterList = (
+    fil_None,          //Sin filtro. Muestra todos
+    fil_ByCurTok,      //Por el token actual
+    fil_ByLastTok,     //por el tokem -1
+    fil_ByLastTokPart, //por el token -1, hasta donde está el cursor
+    fil_ByCurIdent,     //por el identificador actual (usa su propia rutina para identifificadores)
+    fil_ByCurIdentPart //similar pero toma hasta el cursor
+  );
 
   //Tipo de Elemento del patrón
   TFaTPatternElementKind = (
@@ -95,13 +104,14 @@ type
     [0]  -> Token que está justo después del cursor (token actual)
     [-1] -> Token que está antes del token actual
     [-2] -> Token que está antes del token [-1]
-    [1]  -> Token que está después del token actual)
+    [-3]  -> Token que está antes del token [-2])
   }
   TFaOpenPattern = record
     elem : array[-3..0] of TFaPatternElement;
     nBef : integer;   //número de elementos válidos haste el ítem 0 (puede ser 0,1,2 o 3)
     nAft : integer;   //número de elementos válidos depués del ítem 0 (puede ser 0 o 1)
     Items: array of TFaCompletItem; //lista de las palabras disponibles para el completado
+    filter: TFaFilterList
   end;
 
 type
@@ -160,8 +170,10 @@ type
   private  //manejo de patrones de apertura
     OpenPatterns: array of TFaOpenPattern;  //lista de patrones de apertura
     procedure ClearOpenPatterns;
-    function AddOpenPattern(AfterPattern, BeforePattern: string): integer;
+    function AddOpenPattern(AfterPattern, BeforePattern: string;
+      filter: TFaFilterList): integer;
     procedure AddToOpenPatternsL(np: integer; list: string; blk: TFaSynBlock);
+    function StrToFilter(str: string): TFaFilterList;
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
     SelectOnEnter: boolean;   //habilita la selección con enter
@@ -502,6 +514,10 @@ begin
   end;
   lst.Destroy;
 end;
+function TSynFacilComplet.StrToFilter(str: string): TFaFilterList;
+begin
+
+end;
 procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //Procesa la etiqueta <Completion>, que es el bloque que define todo el sistema de
 //completado de código.
@@ -518,8 +534,9 @@ var
   tBlock: TFaXMLatrib;
   blk : TFaSynBlock;
   success: boolean;
-  tBefPatt, tAftPatt: TFaXMLatrib;
+  tBefPatt, tAftPatt, tFilPatt: TFaXMLatrib;
   np: Integer;
+  filt: TFaFilterList;
 begin
   //carga los parámetros
   tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
@@ -560,8 +577,14 @@ begin
       hayOpen :=true;   //marca para indicar que hay lista
       tBefPatt := ReadXMLParam(nodo2,'BeforePattern');
       tAftPatt := ReadXMLParam(nodo2,'AfterPattern');
-      CheckXMLParams(nodo2, 'BeforePattern AfterPattern');  //puede generar excepción
-      np := AddOpenPattern(tAftPatt.val, tBefPatt.val);
+      tFilPatt := ReadXMLParam(nodo2,'FilterBy');
+      CheckXMLParams(nodo2, 'BeforePattern AfterPattern FilterBy');  //puede generar excepción
+      if tFilPatt.hay then begin
+        filt := StrToFilter(tFilPatt.val);
+      end else begin
+        filt := fil_ByLastTokPart;   //valro por defecto
+      end;
+      np := AddOpenPattern(tAftPatt.val, tBefPatt.val, filt);
       //verifica contenido
       listIden := nodo2.TextContent;
       if listIden<>'' then begin
@@ -727,7 +750,8 @@ procedure TSynFacilComplet.ClearOpenPatterns;
 begin
   setlength(OpenPatterns,0);
 end;
-function TSynFacilComplet.AddOpenPattern(AfterPattern, BeforePattern: string): integer;
+function TSynFacilComplet.AddOpenPattern(AfterPattern, BeforePattern: string;
+                                         filter: TFaFilterList): integer;
 {Permite agregar un patrón de apertura}
 const
   wordChars = ['a'..'z','0'..'9','A'..'Z','_'];
@@ -898,6 +922,7 @@ begin
     opPat.nAft:=1;  //hay uno
   end;
   setlength(opPat.Items, 0);  //inicia tabla de ítems
+  opPat.filter := filter;     //fija filtro
   Result := AddPattern(opPat);  //agrega
 end;
 procedure TSynFacilComplet.AddToOpenPatternsL(np: integer; list: string;
@@ -1035,7 +1060,6 @@ var
 begin
   //limpìa listas
   AvailItems.Clear;
-  MenuComplet.ItemList.Clear;  //inicia en cero,  por si no se llena.
   //Analiza entorno de cursor
   LookAroundCursor;  //actualiza IdentAct, IdentAnt, BloqueAct, PosiCursor
   //Verifica si se va a abrir la lista por tecla común o por un atajo
