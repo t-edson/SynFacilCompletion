@@ -144,7 +144,8 @@ type
     StpScan: boolean;  //indica si debe detener la exploración después de uan coincidencia
     function ExtractItem(var pat: string): string;
     procedure ShiftPatterns;  //Desplaza los elemntos
-    procedure FillElementsIn(lst: TStrings); //Llena Items en una lista
+    procedure LoadItems;
+    procedure FillFilteredIn(env: TFaCursorEnviron; lst: TStrings); //Llena Items en una lista
     function MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr): boolean;
     constructor Create(hlt0: TSynFacilSyn);
     function MatchPatternBefore(const curEnv: TFaCursorEnviron;
@@ -170,6 +171,7 @@ type
       MaxX: integer; ItemSelected: boolean; Index: integer;
       aCompletion: TSynCompletion): TPoint;
   public
+    procedure Refresh;
     constructor Create(AOwner: TComponent); override;
   end;
 
@@ -197,12 +199,13 @@ type
     SpecIdentifiers: TArrayTokSpec;
     SearchOnKeyUp : boolean;       //bandera de control
     function CheckForClose: boolean;
-    procedure FillCompletMenuFilteredBy(str: string);
+    procedure FillCompletMenuFilteredBy;
     procedure OpenCompletionWindow;
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
   private  //manejo de patrones de apertura
     OpenPatterns: TFaOpenPatterns;  //lista de patrones de apertura
+    ActiveOpenPatterns: TFaOpenPatterns;  {patrones de apertura que se aplican an estado actual}
     function AddOpenPattern(AfterPattern, BeforePattern: string;
       filter: TFaFilterList; StopScan: boolean): TFaOpenPattern;
     procedure AddToOpenPatternsL(oPat: TFaOpenPattern; list: string;
@@ -407,13 +410,47 @@ begin
   elem[-3].patKind := pak_none;
   dec(nBef);  //actualiza elementos anteriores válidos
 end;
-procedure TFaOpenPattern.FillElementsIn(lst: TStrings);
-{Agrega los ítems que contiene en uan lista TStrings}
+procedure TFaOpenPattern.LoadItems;
+{Carga todos los ítems de trabajo. Los que se usarán para posteriormente filtrarse
+ y cargarse al menú de completado.}
+begin
+  //Por el momento no hacemso nada ya que tenemos los ítems cargados en items[]
+end;
+procedure TFaOpenPattern.FillFilteredIn(env: TFaCursorEnviron; lst: TStrings);
+{Filtra los ítems que contiene (usando "env") y los pone en la lista indicada}
 var
   i: Integer;
 begin
-  for i:=0 to high(Items) do begin  //agrega sus ítems
-    lst.Add(Items[i].text);
+  case Filter of
+  fil_None: begin
+    for i:=0 to high(Items) do begin  //agrega sus ítems
+      lst.Add(Items[i].text);
+    end;
+  end;
+{  l := length(str);
+//debugln('  FilCompl:'+str);
+  //Genera la lista que coincide
+  { TODO : Este proceso es lento si se actualizan muchas opciones en la lista }
+  MenuComplet.ItemList.Clear;  {Limpia todo aquí porque eset método es llamado desde distintos
+                                puntos del programa.}
+  if str='*' then begin  //caso comodín
+    for i:=0 to AvailItems.Count-1 do begin  //agrega todo
+       MenuComplet.ItemList.Add(AvailItems[i]);
+    end;
+  end else if CaseSensComp then begin
+    for i:=0 to AvailItems.Count-1 do begin
+      if str = copy(AvailItems[i],1,l) then
+         MenuComplet.ItemList.Add(AvailItems[i]);
+    end;
+  end else begin  //ignora la caja
+    str := UpCase(str);
+    for i:=0 to AvailItems.Count-1 do begin
+      if str = upcase(copy(AvailItems[i],1,l)) then begin
+        MenuComplet.ItemList.Add(AvailItems[i]);
+      end;
+    end;
+  end;
+}
   end;
 end;
 function TFaOpenPattern.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr): boolean;
@@ -625,6 +662,17 @@ begin
       if x>MaxX then exit;
     end;
 
+end;
+procedure TSynCompletionF.Refresh;
+begin
+  if ItemList.Count = 0 then begin
+    //cierra por no tener elementos
+    Deactivate;
+  end else begin
+    //hay elementos
+    Position:=0;  //selecciona el primero
+  end;
+  TheForm.Invalidate;  //para que se actualice
 end;
 constructor TSynCompletionF.Create(AOwner: TComponent);
 begin
@@ -1145,16 +1193,16 @@ begin
       AvailItems.Add(AllItems[i].text);
     end;
   end;
-  //Verifica patrones de apertura
+  //Verifica los patrones de apertura que se aplicarán
   for opPat in OpenPatterns do begin
     if opPat.MatchPattern(curEnv, CaseSensComp) then begin
       //se cumple el patrón en la posición actual del cursor
-      opPat.FillElementsIn(AvailItems);
+      opPat.LoadItems;  //carga los ítems con los que trabajará
+      ActiveOpenPatterns.Add(opPat);   //guarda en la lista
       if opPat.StpScan then break;  //ya no explora otros patrones de apertura
     end;
   end;
-  //Aplica Filtro
-  FillCompletMenuFilteredBy(curEnv.IdentAct0);
+  FillCompletMenuFilteredBy;
 
 //Después de llenar la lista, se puede ver si tiene o no elementos
   if MenuComplet.ItemList.Count <> 0 then begin  //se abrirá
@@ -1191,7 +1239,7 @@ begin
   CloseCompletionWindow;  //cierra
 end;
 begin
-//debugln('Form.OnKeyDown:'+IdentAct0+':'+IntToStr(ed.CaretX));
+//debugln('Form.OnKeyDown:'+ IdentAct0 +':'+IntToStr(ed.CaretX));
   case Key of
     VK_RETURN: begin
         if Shift= [] then begin
@@ -1228,7 +1276,7 @@ begin
            ed.CommandProcessor(ecDeleteLastChar, #0, nil);  //envía al editor
            if CheckForClose then begin Key:=VK_UNKNOWN;; exit end;
            curEnv.LookAround(ed);  //solo para actualizar el identificador actual
-           FillCompletMenuFilteredBy(curEnv.IdentAct0);
+           FillCompletMenuFilteredBy;
         end;
         Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
       end;
@@ -1292,7 +1340,7 @@ begin
 //Las posibles opciones ya se deben haber llenado. Aquí solo filtramos.
   curEnv.LookAround(ed);  //solo para actualizar el identificador actual
   if CheckForClose then exit;
-  FillCompletMenuFilteredBy(curEnv.IdentAct0);
+  FillCompletMenuFilteredBy;
 end;
 procedure TSynFacilComplet.UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
 {Debe recibir la tecla pulsada aquí, y guardarla para KeyUp, porque allí no se puede
@@ -1334,44 +1382,21 @@ begin
   utKey := '';  //limpia por si la siguiente tecla pulsada no dispara a UTF8KeyPress()
   SearchOnKeyUp := true;  //limpia bandera
 End;
-procedure TSynFacilComplet.FillCompletMenuFilteredBy(str: string);
+procedure TSynFacilComplet.FillCompletMenuFilteredBy;
 //Llena el menú de completado a partir de "AvailItems", filtrando solo las
 //palabras que coincidan con "str"
 var
-  l: Integer;
-  i: Integer;
+  opPat: TFaOpenPattern;
 begin
-  l := length(str);
 //debugln('  FilCompl:'+str);
   //Genera la lista que coincide
-  { TODO : Este proceso es lento si se actualizan muchas opciones en la lista }
-  MenuComplet.ItemList.Clear;  {Limpia todo aquí porque eset método es llamado desde distintos
+  { Este proceso puede ser lento si se actualizan muchas opciones en la lista }
+  MenuComplet.ItemList.Clear;  {Limpia todo aquí porque este método es llamado desde distintos
                                 puntos del programa.}
-  if str='*' then begin  //caso comodín
-    for i:=0 to AvailItems.Count-1 do begin  //agrega todo
-       MenuComplet.ItemList.Add(AvailItems[i]);
-    end;
-  end else if CaseSensComp then begin
-    for i:=0 to AvailItems.Count-1 do begin
-      if str = copy(AvailItems[i],1,l) then
-         MenuComplet.ItemList.Add(AvailItems[i]);
-    end;
-  end else begin  //ignora la caja
-    str := UpCase(str);
-    for i:=0 to AvailItems.Count-1 do begin
-      if str = upcase(copy(AvailItems[i],1,l)) then begin
-        MenuComplet.ItemList.Add(AvailItems[i]);
-      end;
-    end;
+  for opPat in ActiveOpenPatterns do begin
+    opPat.FillFilteredIn(curEnv, MenuComplet.ItemList);
   end;
-  if MenuComplet.ItemList.Count = 0 then begin
-    //cierra por no tener elementos
-    MenuComplet.Deactivate;
-  end else begin
-    //hay elementos
-    MenuComplet.Position:=0;  //selecciona el primero
-  end;
-  MenuComplet.TheForm.Invalidate;  //para que se actualice
+  MenuComplet.Refresh;
 end;
 procedure TSynFacilComplet.OpenCompletionWindow;
 //Abre la ayuda contextual, en la posición del cursor.
@@ -1394,6 +1419,7 @@ begin
   inherited Create(AOwner);
   curEnv   := TFaCursorEnviron.Create(self);
   OpenPatterns := TFaOpenPatterns.Create(True);
+  ActiveOpenPatterns := TFaOpenPatterns.Create(False);
   OpenPatterns.Clear;
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
@@ -1406,6 +1432,7 @@ end;
 destructor TSynFacilComplet.Destroy;
 begin
   if MenuComplet<>nil then MenuComplet.Destroy;  //por si no lo liberaron
+  ActiveOpenPatterns.Destroy;
   AvailItems.Destroy;
   OpenPatterns.Destroy;
   curEnv.Destroy;
