@@ -13,6 +13,7 @@ verificación para la apertura de la ventana de completado.
 * Se cambia el nombre de algunos métodos.
 * Se crea soporte para los parámetros "FilterBy" y "StopScan" de la etiqueta <OpenOn>.
 * Se crea la clase TFaCursorEnviron, para adminitrar el entorno del cursor.
+* Se crea la clase TFaCompletionLists, y se manejan las listas como objetos.
 
 En resumen, se cambai la lógica general de la función de completado, dotándole de mayor
 flexibilidad para manejar casos muy diferentes, al común reemplazio del identificador
@@ -153,12 +154,26 @@ type
       CaseSensComp: boolean): boolean;
     function MatchPattern(const curEnv: TFaCursorEnviron;
       CaseSensComp: boolean): boolean;
+    procedure Add(txt: string; blk: TFaSynBlock);
+    procedure AddList(lst: TStringList; blk: TFaSynBlock);
     procedure AddList(list: string; blk: TFaSynBlock);
     constructor Create(hlt0: TSynFacilSyn);
   end;
 
   //Lista de patrones
   TFaOpenPatterns = specialize TFPGObjectList<TFaOpenPattern>;
+
+  //Objeto lista para completado
+  { TFaCompletionList }
+  TFaCompletionList = class
+    Name : string;
+    Items: array of TFaCompletItem; //lista de las palabras disponibles
+    procedure AddItems(list: string; blk: TFaSynBlock);
+    procedure CopyItemsTo(sList: TStrings);
+  end;
+
+  //Colección de listas
+  TFaCompletionLists = specialize TFPGObjectList<TFaCompletionList>;
 
 type
   //clase personalizada para el completado
@@ -188,9 +203,7 @@ type
   protected
     ed        : TSynEdit;        //referencia interna al editor
     MenuComplet: TSynCompletionF;//menú contextual
-    AllItems  : TFaCompletItems; //lista de todas las palabras disponibles para el completado
-    AvailItems: TStringList;  {Lista de palabras disponible para cargar en el menú de
-                                auto-completado}
+    //IncludItems: TStringList;   //Lista de palabras obtenidas por <INCLUDE>
     curEnv   : TFaCursorEnviron;  //entorno del cursor
     Pos0     : TPoint;        //Posición incial del cursor donde se abrió la ventana de completado
 
@@ -205,10 +218,12 @@ type
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
   private  //manejo de patrones de apertura
-    OpenPatterns: TFaOpenPatterns;  //lista de patrones de apertura
+    OpenPatterns: TFaOpenPatterns;     //lista de patrones de apertura
     ActiveOpenPatterns: TFaOpenPatterns;  {patrones de apertura que se aplican an estado actual}
+    CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     function AddOpenPattern(AfterPattern, BeforePattern: string;
       filter: TFaFilterList; StopScan: boolean): TFaOpenPattern;
+    function AddComplList(lstName: string): TFaCompletionList;
     procedure ProcXMLOpenOn(nodo: TDOMNode);
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
@@ -222,8 +237,6 @@ type
     procedure UnSelectEditor;  //termina la ayuda contextual con el editor
     procedure UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
     procedure KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure AddCompItem(item, content: string; blk: TFaSynBlock);
-    procedure AddCompItemL(list: string; blk: TFaSynBlock);
     procedure CloseCompletionWindow;
   public
     constructor Create(AOwner: TComponent); override;
@@ -319,6 +332,41 @@ begin
   end;
   //No enecontró
   lext.Free;
+end;
+
+{ TFaCompletionList }
+procedure TFaCompletionList.AddItems(list: string; blk: TFaSynBlock);
+//Agrega una lista de ítems, separados por espacios, a la lista de completado
+var
+  n: Integer;
+  r: TFaCompletItem;
+  lst: TStringList;
+  i: Integer;
+begin
+  //divide
+  lst := TStringList.Create;
+  lst.Delimiter := ' ';
+  lst.DelimitedText := list;
+
+  //agrega
+  n := high(Items)+1;  //tamaño de matriz
+  setlength(Items,n+lst.Count);
+  for i:= 0 to lst.Count-1 do begin
+    r.text:=lst[i];
+    r.content:=r.text;
+    r.block := blk;
+    Items[n+i] := r;
+  end;
+  lst.Destroy;
+end;
+procedure TFaCompletionList.CopyItemsTo(sList: TStrings);
+//Agrega su contendio a la lista "sList"
+var
+  i: Integer;
+begin
+  for i:= 0 to High(items) do begin
+    sList.Add(items[i].text);
+  end;
 end;
 
 { TFaCursorEnviron }
@@ -423,34 +471,11 @@ begin
   case Filter of
   fil_None: begin
     for i:=0 to high(Items) do begin  //agrega sus ítems
-      debugln('>>agregando:'+Items[i].text);
+//      debugln('>>agregando:'+Items[i].text);
       lst.Add(Items[i].text);
     end;
   end;
-{  l := length(str);
-//debugln('  FilCompl:'+str);
-  //Genera la lista que coincide
-  { TODO : Este proceso es lento si se actualizan muchas opciones en la lista }
-  MenuComplet.ItemList.Clear;  {Limpia todo aquí porque eset método es llamado desde distintos
-                                puntos del programa.}
-  if str='*' then begin  //caso comodín
-    for i:=0 to AvailItems.Count-1 do begin  //agrega todo
-       MenuComplet.ItemList.Add(AvailItems[i]);
-    end;
-  end else if CaseSensComp then begin
-    for i:=0 to AvailItems.Count-1 do begin
-      if str = copy(AvailItems[i],1,l) then
-         MenuComplet.ItemList.Add(AvailItems[i]);
-    end;
-  end else begin  //ignora la caja
-    str := UpCase(str);
-    for i:=0 to AvailItems.Count-1 do begin
-      if str = upcase(copy(AvailItems[i],1,l)) then begin
-        MenuComplet.ItemList.Add(AvailItems[i]);
-      end;
-    end;
-  end;
-}
+
   end;
 end;
 function TFaOpenPattern.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr): boolean;
@@ -527,23 +552,33 @@ begin
 end;
 function TFaOpenPattern.MatchPattern(const curEnv: TFaCursorEnviron;
   CaseSensComp: boolean): boolean;
+    function ItemInBlock(i: Integer): boolean;  inline;
+    begin
+    //  Result := (block = nil) or //es válido para todos los bloques
+    //            (block = curEnv.curBlock);
+    end;
 begin
   Result := MatchPatternBefore(curEnv, CaseSensComp) and
-            MatchPatternAfter(curEnv, CaseSensComp)
+            MatchPatternAfter(curEnv, CaseSensComp);  //falta verificar bloque
 end;
-procedure TFaOpenPattern.AddList(list: string; blk: TFaSynBlock);
+procedure TFaOpenPattern.Add(txt: string; blk: TFaSynBlock);
+{Agrega un ítem al patrón de apertura}
+var
+  n: Integer;
+begin
+  n := high(Items)+1;  //tamaño de matriz
+  setlength(Items, n+1);
+  Items[n].text:=txt;
+  Items[n].content:=txt;
+  Items[n].block := blk;
+end;
+procedure TFaOpenPattern.AddList(lst: TStringList; blk: TFaSynBlock);
 {Agrega una lista de palabras al patrón de apertura. }
 var
-  lst: TStringList;
   n: Integer;
   r : TFaCompletItem;
   i: Integer;
 begin
-  lst := TStringList.Create;
-  lst.Delimiter := ' ';
-  lst.DelimitedText := list;
-
-  //agrega
   n := high(Items)+1;  //tamaño de matriz
   setlength(Items, n+lst.Count);
   for i:= 0 to lst.Count-1 do begin
@@ -552,6 +587,18 @@ begin
     r.block := blk;
     Items[n+i] := r;
   end;
+end;
+procedure TFaOpenPattern.AddList(list: string; blk: TFaSynBlock);
+{Agrega una lista de palabras al patrón de apertura. }
+var
+  lst: TStringList;
+begin
+  lst := TStringList.Create;
+  //troza
+  lst.Delimiter := ' ';
+  lst.DelimitedText := list;
+  //agrega
+  AddList(lst, blk);
   lst.Destroy;
 end;
 constructor TFaOpenPattern.Create(hlt0: TSynFacilSyn);
@@ -769,45 +816,6 @@ begin
   end;
   //no encontró
 end;
-procedure TSynFacilComplet.AddCompItem(item, content: string; blk: TFaSynBlock);
-//Agrega un ítem a la lista de completado. "blk" es el bloque donde será válida el ítem para
-//el completado. Si es NIL, será válido en cualquier bloque.
-var
-  n: Integer;
-  r: TFaCompletItem;
-begin
-  r.text:=item;  //etiqueta a mostrar
-  r.content:=content;
-  r.block := blk;;
-  //agrega
-  n := high(AllItems)+1;  //tamaño de matriz
-  setlength(AllItems,n+1);
-  AllItems[n] := r;
-end;
-procedure TSynFacilComplet.AddCompItemL(list: string; blk: TFaSynBlock);
-//Agrega una lista de ítems, separados por espacios, a la lista de completado
-var
-  n: Integer;
-  r: TFaCompletItem;
-  lst: TStringList;
-  i: Integer;
-begin
-  //divide
-  lst := TStringList.Create;
-  lst.Delimiter := ' ';
-  lst.DelimitedText := list;
-
-  //agrega
-  n := high(AllItems)+1;  //tamaño de matriz
-  setlength(AllItems,n+lst.Count);
-  for i:= 0 to lst.Count-1 do begin
-    r.text:=lst[i];
-    r.content:=r.text;
-    r.block := blk;
-    AllItems[n+i] := r;
-  end;
-  lst.Destroy;
-end;
 procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
 {Procesa el bloque <OpenOn ... >}
 var
@@ -848,47 +856,36 @@ procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //completado de código.
 var
   listIden: string;
-  tCasSen: TFaXMLatrib;
   i,j   : Integer;
   nodo2: TDOMNode;
-  tListAttr: TFaXMLatrib;
   tipTok: TSynHighlighterAttributes;
   hayList, hayOpen: Boolean;
-  tOpenKUp: TFaXMLatrib;
-  tSelOEnt: TFaXMLatrib;
-  tBlock: TFaXMLatrib;
+  tIncAttr: TFaXMLatrib;
+  tLstBlock, tLstName: TFaXMLatrib;
   blk : TFaSynBlock;
   success: boolean;
-  oPat: TFaOpenPattern;
+  defPat: TFaOpenPattern;
+  cmpList: TFaCompletionList;
 begin
-  //carga los parámetros
-  tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
-  tOpenKUp:=ReadXMLParam(nodo, 'OpenOnKeyUp');
-  tSelOEnt:=ReadXMLParam(nodo, 'SelectOnEnter');
-  //carga atributos leidos
-  if tCasSen.hay then  //si se especifica
-    CaseSensComp := tCasSen.bol  //se lee
-  else  //si no
-    CaseSensComp := CaseSensitive;  //toma el del resaltador
-  if tOpenKUp.hay then OpenOnKeyUp:=tOpenKUp.bol;
-  if tSelOEnt.hay then SelectOnEnter:=tSelOEnt.bol;
   hayList := false;  //inicia bandera
   hayOpen := false;  //inicia bandera
+  //crea patrón de apertura por defecto
+  defPat := AddOpenPattern('Identifier', '', fil_None, true);
   ////////// explora nodos hijos //////////
   for i := 0 to nodo.ChildNodes.Count-1 do begin
     nodo2 := nodo.ChildNodes[i];
     if UpCAse(nodo2.NodeName)='INCLUDE' then begin  //incluye lista de palabras por atributo
       //lee parámetros
-      tListAttr := ReadXMLParam(nodo2,'Attribute');
+      tIncAttr := ReadXMLParam(nodo2,'Attribute');
       CheckXMLParams(nodo2, 'Attribute');  //puede generar excepción
-      if tListAttr.hay then begin
+      if tIncAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
-        if IsAttributeName(tListAttr.val)  then begin
-          tipTok := GetAttribByName(tListAttr.val);   //tipo de atributo
+        if IsAttributeName(tIncAttr.val)  then begin
+          tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
           //busca los identificadores para agregarlos
           for j:= 0 to high(SpecIdentifiers) do begin
             if SpecIdentifiers[j].tTok = tipTok then begin
-              AddCompItem(SpecIdentifiers[j].orig,SpecIdentifiers[j].orig, nil);
+              defPat.Add(SpecIdentifiers[j].orig, nil); {Agrega a lista por defecto.}
             end;
           end;
         end else begin  //atributo no existe
@@ -903,40 +900,47 @@ begin
       //Esta forma de declaración permite definir un orden en la carga de listas
       hayList :=true;   //marca para indicar que hay lista
       //lee parámetros
-      tBlock := ReadXMLParam(nodo2,'Block');
-      CheckXMLParams(nodo2, 'Block');  //puede generar excepción
-      if tBlock.hay then begin
-        blk := SearchBlock(tBlock.val, success);
+      tLstBlock := ReadXMLParam(nodo2,'Block');
+      tLstName :=  ReadXMLParam(nodo2,'Name');
+      CheckXMLParams(nodo2, 'Block Name');  //puede generar excepción
+      if not tLstName.hay then begin
+        tLstName.val:='#list'+IntToStr(CompletLists.Count);
+      end;
+      if tLstBlock.hay then begin
+        blk := SearchBlock(tLstBlock.val, success);
         if not success then begin
           raise ESynFacilSyn.Create(ERR_INVAL_BLK_NAME);
         end;
       end else begin
         blk := nil;
       end;
-      //ve contenido
+      cmpList := AddComplList(tLstName.val);
+      //Ve si tiene contenido
       listIden := nodo2.TextContent;
       if listIden<>'' then begin
-         //Se ha especificado lista de palabras. Los carga en AllItems[]
-         AddCompItemL(listIden, blk);
+        cmpList.AddItems(listIden, blk);
+        defPat.AddList(listIden, nil); {Agrega lista en este patrón, por si se llegase a utilizar.
+                                       Se hace aquí mismo para mantener el orden, si es que se
+                                       mezcla con etiquetas <INCLUDE> O listas de palabras
+                                       indicadas directamente en <COMPLETION> ... </COMPLETION>}
       end;
     end else if nodo2.NodeName='#text' then begin
       //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
+//      debugln('#text:'+nodo2.NodeValue);
+      defPat.AddList(nodo2.NodeValue, nil);
     end else if LowerCase(nodo2.NodeName) = '#comment' then begin
       //solo para evitar que de mensaje de error
     end else begin
       raise ESynFacilSyn.Create(Format(ERR_INVAL_LAB_COMP,[nodo2.NodeName]));
     end;
   end;
-  //verifica si se especificaron listas
-  if not hayList and not hayOpen then begin
-    //No se definieron listas ni eventos.
-    //Se verifica si hay lista en el cuerpo de <completion></completion>
-    listIden := nodo.TextContent;
-    if listIden<>'' then begin
-       //Se ha especificado lista de palabras directamente. Crea un patrón por defecto
-      oPat := AddOpenPattern('Identifier', '', fil_None, true);
-      oPat.AddList(listIden, nil);
-    end;
+  //verifica las opciones por defecto
+  if hayOpen then begin
+    //Se ha especificado patrones de apretura.
+    OpenPatterns.Remove(defPat);  //elimina el patrón por defecto, porque no se va a usar
+  end else begin
+    //No se ha especificado ningún evento de apertura
+    //mantiene el patrón por defecto
   end;
 end;
 procedure TSynFacilComplet.LoadFromFile(Arc: string);
@@ -945,14 +949,17 @@ var
   i: Integer;
   nodo: TDOMNode;
   nombre: WideString;
+  tCasSen: TFaXMLatrib;
+  tOpenKUp: TFaXMLatrib;
+  tSelOEnt: TFaXMLatrib;
 begin
   inherited LoadFromFile(Arc);  {Puede disparar excepción. El mesnajes de error generado
                                 incluye el nombre del archivo}
   OpenOnKeyUp := true;     //por defecto
   ReadSpecialIdentif;      //carga los identificadores especiales
-  setlength(AllItems,0);   //inicia lista
   OpenPatterns.Clear;      //limpia patrones de apertura
   ActiveOpenPatterns.Clear;
+  CompletLists.Clear;
   try
     ReadXMLFile(doc, Arc);  //carga archivo
     //procede a la carga de la etiqueta <COMPLETION>
@@ -961,7 +968,17 @@ begin
        nodo := doc.DocumentElement.ChildNodes[i];
        nombre := UpCase(nodo.NodeName);
        if nombre = 'COMPLETION' then  begin
-         //forma corta de <TOKEN ATTRIBUTE='KEYWORD'> lista </TOKEN>
+         //carga los parámetros
+         tCasSen :=ReadXMLParam(nodo, 'CaseSensitive');
+         tOpenKUp:=ReadXMLParam(nodo, 'OpenOnKeyUp');
+         tSelOEnt:=ReadXMLParam(nodo, 'SelectOnEnter');
+         //carga atributos leidos
+         if tCasSen.hay then  //si se especifica
+           CaseSensComp := tCasSen.bol  //se lee
+         else  //si no
+           CaseSensComp := CaseSensitive;  //toma el del resaltador
+         if tOpenKUp.hay then OpenOnKeyUp:=tOpenKUp.bol;
+         if tSelOEnt.hay then SelectOnEnter:=tSelOEnt.bol;
          ProcCompletionLabel(nodo);  //Puede generar error
        end;
     end;
@@ -1136,6 +1153,15 @@ begin
   OpenPatterns.Add(opPat);   //agrega
   Result := opPat;  //devuelve referencia
 end;
+function TSynFacilComplet.AddComplList(lstName: string): TFaCompletionList;
+var
+  lst: TFaCompletionList;
+begin
+  lst := TFaCompletionList.Create;
+  lst.Name:= lstName;
+  CompletLists.Add(lst);
+  Result := lst;
+end;
 
 procedure TSynFacilComplet.OnCodeCompletion(var Value: string;
   SourceValue: string; var SourceStart, SourceEnd: TPoint; KeyChar: TUTF8Char;
@@ -1152,14 +1178,7 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
 //Llena la lista "AvailItems", con los ítems que correspondan de acuerdo a la posición
 //actual del cursor y de la configuración del archivo XML.
 //Luego llena el menú contextual con los ítems filtrados de acuerdo a la posición actual.
-  function ItemInBlock(i: Integer): boolean;  inline;
-  {Indica si el item de AllItems[], cumple la condición del bloque actual}
-  begin
-    Result := (AllItems[i].block = nil) or //es válido para todos los bloques
-              (AllItems[i].block = curEnv.curBlock);
-  end;
 var
-  i: Integer;
   opPat: TFaOpenPattern;
 begin
   MenuComplet.ItemList.Clear;   //inicia menú
@@ -1180,22 +1199,16 @@ begin
     end;
   end;
   //Prepara para llenar la lista de completado
-  AvailItems.Clear;
   curEnv.LookAround(ed);  //Lee entorno.
   debugln('OnExecute: explorando entorno.');
-  //Analiza entorno y carga AvailItems[], con la lista de completado que corresponda
-  //Los items en AllItems[], se cargan siempre
-  for i:=0 to high(AllItems) do begin
-    if ItemInBlock(i) then begin //y en identificadores
-      AvailItems.Add(AllItems[i].text);
-    end;
-  end;
   //Verifica los patrones de apertura que se aplicarán
   ActiveOpenPatterns.Clear;
   for opPat in OpenPatterns do begin
     if opPat.MatchPattern(curEnv, CaseSensComp) then begin
       //se cumple el patrón en la posición actual del cursor
-      opPat.LoadItems;  //carga los ítems con los que trabajará
+      opPat.LoadItems;  {carga los ítems con los que trabajará. Aquí se puede aprovechar para
+                         cargar solo los necesarios (como los que empìecen con la primera letra
+                         del token actual), y así acelerar el filtrado posterior. }
       ActiveOpenPatterns.Add(opPat);   //guarda en la lista
       if opPat.StpScan then break;  //ya no explora otros patrones de apertura
     end;
@@ -1418,10 +1431,10 @@ begin
   curEnv   := TFaCursorEnviron.Create(self);
   OpenPatterns := TFaOpenPatterns.Create(True);
   ActiveOpenPatterns := TFaOpenPatterns.Create(False);
+  CompletLists := TFaCompletionLists.Create(true);
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
   SelectOnEnter := true;
-  AvailItems := TStringList.Create;  //crea lista
   vKey := 0;     //limpia
   vShift := [];  //limpia
   utKey := '';   //limpia
@@ -1429,8 +1442,8 @@ end;
 destructor TSynFacilComplet.Destroy;
 begin
   if MenuComplet<>nil then MenuComplet.Destroy;  //por si no lo liberaron
+  CompletLists.Destroy;
   ActiveOpenPatterns.Destroy;
-  AvailItems.Destroy;
   OpenPatterns.Destroy;
   curEnv.Destroy;
   inherited Destroy;
