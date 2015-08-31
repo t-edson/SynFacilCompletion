@@ -113,6 +113,8 @@ type
   private
     hlt: TSynFacilSyn;        //referencia al resaltador que lo contiene
     tokens   : TATokInfo;     //lista de tokens actuales
+    StartIdentif : integer;   //inicio de identificador
+    function UpdateStartIdentif: integer;
   public
     inMidTok : boolean;        //indica si el cursor está en medio de un token
     tok0     : TFaTokInfoPtr;  //referencia al token actual.
@@ -120,8 +122,10 @@ type
     tok_2    : TFaTokInfoPtr;  //referencia al token anterior a tok_1.
     tok_3    : TFaTokInfoPtr;  //referencia al token anterior a tok_2.
     CurX     : Integer;        //posiición actual del cursor
+    curLine  : string;         //línea actual de exploración
     curBlock : TFaSynBlock;    //referencia al bloque actual
-    procedure LookAround(ed: TSynEdit);
+    caseSen  : boolean;        //indica el estado de caja actual
+    procedure LookAround(ed: TSynEdit; CaseSen0: boolean);
     //Las siguientes funciones, deben llaamrse después de lamar a LookAround()
     function HaveLastTok: boolean;
     function LastTok: string;
@@ -138,17 +142,14 @@ type
   TFaOpenPattern = class
   private
     hlt: TSynFacilSyn;  //refrencia al resaltador que lo contiene
-    CaseSens: boolean;  //bandera de sensibilidad a la caja
     Items: array of TFaCompletItem;   //lista de las palabras disponibles para el completado
     Avails: array of TFaCompletItemPtr;  {referencia a los ítems a cargar cuando se active el
                                           patrón. Se usa punteros para no duplicar datos}
-    function MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr): boolean;
-    function MatchPatternBefore(const curEnv: TFaCursorEnviron;
-      CaseSensComp: boolean): boolean;
-    function MatchPatternAfter(const curEnv: TFaCursorEnviron;
-      CaseSensComp: boolean): boolean;
-    function MatchPattern(const curEnv: TFaCursorEnviron;
-      CaseSensComp: boolean): boolean;
+    function MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
+      CaseSens: boolean): boolean;
+    function MatchPatternBefore(const curEnv: TFaCursorEnviron): boolean;
+    function MatchPatternAfter(const curEnv: TFaCursorEnviron): boolean;
+    function MatchPattern(const curEnv: TFaCursorEnviron): boolean;
   public
     {Los índices de elem [] representan posiciones relativas de tokens
       [0]  -> Token que está justo después del cursor (token actual)
@@ -160,11 +161,12 @@ type
     nBef : integer;   //número de elementos válidos haste el ítem 0 (puede ser 0,1,2 o 3)
     nAft : integer;   //número de elementos válidos depués del ítem 0 (puede ser 0 o 1)
     filter: TFaFilterList;
+    block : TFaSynBlock;  //bloque donde es válido
     StpScan: boolean;  //indica si debe detener la exploración después de uan coincidencia
     function ExtractItem(var pat: string): string;
     procedure ShiftPatterns;  //Desplaza los elemntos
-    procedure LoadItems(const curEnv: TFaCursorEnviron; CaseSensComp: boolean);
-    procedure FillFilteredIn(env: TFaCursorEnviron; lst: TStrings); //Llena Items en una lista
+    procedure LoadItems(const curEnv: TFaCursorEnviron);
+    procedure FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings); //Llena Items en una lista
     procedure AddItem(txt: string; blk: TFaSynBlock);
     procedure AddItems(lst: TStringList; blk: TFaSynBlock);
     procedure AddItems(list: string; blk: TFaSynBlock);
@@ -284,6 +286,11 @@ const
   WORD_CHARS = ['a'..'z','0'..'9','A'..'Z','_'];
   STR_DELIM = ['''','"'];
   ALL_IDENTIF = 'AllIdentifiers';
+  //Para el reconocimiento de identificadores, cuando se usa "fil_LastIdent" y "fil_LastIdentPart"
+  CHAR_STRT_IDEN = ['a'..'z','A'..'Z','_'];
+  CHAR_BODY_IDEN = CHAR_STRT_IDEN + ['0'..'9'];
+  CHR_NO_STRT_IDEN = CHAR_BODY_IDEN - CHAR_STRT_IDEN;   //no son inicio de identificador
+
 function ReadExtenFromXML(XMLfile: string): string;
 //Lee las extensiones que tiene definidas un archivo de sintaxis.
 var doc: TXMLDocument;
@@ -386,20 +393,22 @@ constructor TFaCursorEnviron.Create(hlt0: TSynFacilSyn);
 begin
   hlt := hlt0;
 end;
-procedure TFaCursorEnviron.LookAround(ed: TSynEdit);
+procedure TFaCursorEnviron.LookAround(ed: TSynEdit; CaseSen0: boolean);
 {Analiza el estado del cursor en el editor. Se supone que se debe llamar, después de
  actualizar el editor. Actualiza: PosiCursor, curBlock, tok0, tok_1, tok_2
  y tok_3. Utiliza punteros, para evitar perder tiempo creando copias.}
 var
   iTok0    : integer;       //índice al token actual
 begin
+  caseSen:=CaseSen0;  //actualiza estado
   //valores por defecto
   curBlock := nil;
   //explora la línea con el resaltador
   hlt.ExploreLine(ed.CaretXY, tokens, iTok0);
-  {curLine := ed.Lines(ed.CaretY);  { TODO : Para evitar perder tiempo copiando la línea actual, se
+  curLine := ed.Lines[ed.CaretY]; { TODO : Para evitar perder tiempo copiando la línea actual, se
                                    podría usar una versión de ExploreLine() que devuelva la línea
-                                   actual, ya que esta copia es creada ya dentro de ExploreLine(). }}
+                                   actual, ya que esta copia es creada ya dentro de ExploreLine()
+                                   y mejor aún que explore solo hasta el token[0]}
   if iTok0=-1 then exit;   //no ubica al token actual
   tok0 := @tokens[iTok0];    //lee token actual token[0]
   CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
@@ -438,18 +447,54 @@ begin
 //  Result := copy(tok0^.txt,1,CurX-tok0^.posIni-1);
   Result := copy(tok_1^.txt, 1, CurX-tok_1^.posIni-1);
 end;
-function TFaCursorEnviron.HaveLastIdent: boolean;
+function TFaCursorEnviron.UpdateStartIdentif: integer;
+{Actualiza el índice al inicio del identificador anterior, a la posición actual del cursor}
+var
+  i: Integer;
 begin
-  Result := false;
-//  Result := (tok_1 <> nil) and (ed.);
+  StartIdentif := -1;   //valor por defecto
+  if CurX<=1 then exit;  //está al inicio
+  i:= CurX-1;  //caracter anterior al cursor
+  {Se asume que el cursor, estaá después de un identificador y retrocede por los
+  caracteres hasta encontrar un caracter del cuerpo del identificador, que no sea
+  un caracter de inicio}
+  while (i>1) and (curLine[i] in CHR_NO_STRT_IDEN) do
+    dec(i);
+  //Se detuvo porque llego al inicio o encontró un caracter que no está en CHR_NO_STRT_IDEN
+  //Verifica
+  if curLine[1] in CHAR_STRT_IDEN then  begin
+    //Es totalmente posible encontrar un identificador antes del cursor
+    StartIdentif := i;
+  end else begin
+    StartIdentif := -1;
+  end;
+end;
+
+function TFaCursorEnviron.HaveLastIdent: boolean;
+{Indica si hay un identificador antes del cursor. Debe llamarse siempre antes de
+ usar LastIdent().}
+begin
+  UpdateStartIdentif;
+  Result := (StartIdentif <> -1);
 end;
 function TFaCursorEnviron.LastIdent: string;
+{Devuelve el identificador anterior al cursor. Debe llamarse siempre despues de llamar
+ a HaveLastIdent}
+var
+  i: Integer;
 begin
-
+  {Ya sabemos que hay identificador hasta antes del cursor, ahora debemos ver, hasta
+   dónde se extiende}
+  i := CurX;
+  while curLine[i] in CHAR_BODY_IDEN do  //no debería ser necesario verificar el final
+    inc(i);
+  Result := copy(curLine, StartIdentif, CurX-i+1);
 end;
 function TFaCursorEnviron.LastIdentPart: string;
+{Devuelve el identificador anterior al cursor. Debe llamarse siempre despues de llamar
+ a HaveLastIdent}
 begin
-
+  Result := copy(curLine, StartIdentif, CurX-StartIdentif);
 end;
 
 { TFaOpenPattern }
@@ -497,23 +542,46 @@ begin
   elem[-3].patKind := pak_none;
   dec(nBef);  //actualiza elementos anteriores válidos
 end;
-procedure TFaOpenPattern.LoadItems(const curEnv: TFaCursorEnviron;
-  CaseSensComp: boolean);
+procedure TFaOpenPattern.LoadItems(const curEnv: TFaCursorEnviron);
 {Carga todos los ítems de trabajo. Los que se usarán para posteriormente filtrarse
  y cargarse al menú de completado.}
+  procedure FilterByChar(const c: char);
+  {Filtra la lista Items[], usando un caracter}
+  var
+    i: Integer;
+    cu: Char;
+    nAvails: Integer;
+  begin
+    SetLength(Avails, high(Items)+1);  //tamaño máximo
+    nAvails := 0;
+    if curEnv.caseSen then begin
+      for i:=0 to high(Items) do begin
+        if Items[i].text[1] = c then begin
+          Avails[nAvails] := @Items[i];
+          Inc(nAvails);
+        end;
+      end;
+    end else begin
+      cu := UpCase(c);
+      for i:=0 to high(Items) do begin
+        if upcase(Items[i].text[1]) = cu then begin
+          Avails[nAvails] := @Items[i];
+          Inc(nAvails);
+        end;
+      end;
+    end;
+    SetLength(Avails, nAvails);  //elimina adicionales
+    {Si se quisiera acelerar aún más el proceso, se puede pública "nAvails" y no truncar Avails[]}
+  end;
 var
   i: Integer;
-  nAvails: Integer;
-  c: Char;
 begin
-  //Por el momento solo copiamos todos
-  SetLength(Avails, high(Items)+1);  //tamaño máximo
-  nAvails := 0;
   case filter of
-  fil_None: begin
+  fil_None: begin  //no hay filtro
+    //copia todas las referecnias
+    SetLength(Avails, high(Items)+1);
     for i:=0 to high(Items) do begin
-      Avails[nAvails] := @Items[i];
-      Inc(nAvails);
+      Avails[i] := @Items[i];
     end;
   end;
   fil_LastTok,
@@ -521,13 +589,7 @@ begin
     if curEnv.HaveLastTok then begin
       //hay un token anterior
       debugln(' lastTok:'+curEnv.LastTok);
-      c := curEnv.LastTok[1];   //usa primer caracter como filtro (peor caso)
-      for i:=0 to high(Items) do begin
-        if Items[i].text[1] = c then begin
-          Avails[nAvails] := @Items[i];
-          Inc(nAvails);
-        end;
-      end;
+      FilterByChar(curEnv.LastTok[1]);   //primer caracter como filtro (peor caso)
     end;
   end;
   fil_LastIdent,
@@ -535,41 +597,66 @@ begin
     if curEnv.HaveLastIdent then begin
       //hay un token anterior
       debugln(' LastIden:'+curEnv.LastIdent);
-      c := curEnv.LastIdent[1];   //usa primer caracter como filtro (peor caso)
-      for i:=0 to high(Items) do begin
-        if Items[i].text[1] = c then begin
-          Avails[nAvails] := @Items[i];
-          Inc(nAvails);
+      FilterByChar(curEnv.LastIdent[1]);  //primer caracter como filtro (peor caso)
+    end;
+  end;
+  else   //no debería pasar
+    SetLength(Avails, 0);
+  end;
+end;
+procedure TFaOpenPattern.FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings);
+{Filtra los ítems que contiene (usando "env") y los pone en la lista indicada}
+  procedure FilterBy(const str: string);
+  //Llena el menú de completado a partir de "Avails", filtrando solo las
+  //palabras que coincidan con "str"
+  var
+    l: Integer;
+    i: Integer;
+    str2: String;
+  begin
+    l := length(str);
+    //Genera la lista que coincide
+    if env.caseSen then begin
+      for i:=0 to high(Avails) do begin
+        //esta no es la forma más eficiente de comparar, pero sirve por ahora.
+        if str = copy(Avails[i]^.text,1,l) then
+           lst.Add(Avails[i]^.text);
+      end;
+    end else begin  //ignora la caja
+      str2 := UpCase(str);
+      for i:=0 to high(Avails) do begin
+        if str2 = upcase(copy(Avails[i]^.text,1,l)) then begin
+          lst.Add(Avails[i]^.text);
         end;
       end;
     end;
   end;
-  end;
-//  debugln('-truncando a:'+IntToStr(nAvails));
-  SetLength(Avails, nAvails);  //elimina adicionales
-  {Si se quisiera acelerar aún más el proceso, se puede pública "nAvails" y no truncar Avails[]}
-end;
-procedure TFaOpenPattern.FillFilteredIn(env: TFaCursorEnviron; lst: TStrings);
-{Filtra los ítems que contiene (usando "env") y los pone en la lista indicada}
+
 var
   i: Integer;
 begin
   case Filter of
-  fil_LastTok,
-  fil_LastTokPart,
   fil_None: begin  //agrega todos
-    debugln('>>encontrados:'+IntToStr(high(Avails)));
-    for i:=0 to high(Avails) do begin  //agrega sus ítems
-//      debugln(' agregando:'+Avails[i]^.text);
-      lst.Add(Avails[i]^.text);
+      for i:=0 to high(Avails) do begin  //agrega sus ítems
+  //      debugln(' agregando:'+Avails[i]^.text);
+        lst.Add(Avails[i]^.text);
+      end;
+      debugln('>>encontrados:'+IntToStr(high(Avails)+1));
     end;
-  end;
+  fil_LastTok: begin  //último token
+      if env.HaveLastTok then
+        FilterBy(env.LastTok);
+    end;
+  fil_LastTokPart: begin  //último token hasta el cursor
+      if env.HaveLastTok then
+        FilterBy(env.LastTokPart);
+    end;
 
   end;
 end;
-function TFaOpenPattern.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr): boolean;
-{Verifica el elemento de un patrón, coincide con un token de tokens[].
- La bandera "CaseSens" debe estar correctamente inicializada}
+function TFaOpenPattern.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
+                CaseSens: boolean): boolean;
+{Verifica el elemento de un patrón, coincide con un token de tokens[]. }
 var
   pe: TFaPatternElement;
 begin
@@ -601,54 +688,51 @@ begin
   end;
   end;
 end;
-function TFaOpenPattern.MatchPatternBefore(const curEnv: TFaCursorEnviron;
-  CaseSensComp: boolean): boolean;
+function TFaOpenPattern.MatchPatternBefore(const curEnv: TFaCursorEnviron
+  ): boolean;
 {Verifica si el patrón indicado, cumple con las condiciones actuales (before)}
 begin
-  CaseSens := CaseSensComp;
   case nBef of
   0: begin  //no hay elementos, siempre cumple                  |
     exit(true);
   end;
   1: begin  //hay elem[-1]
-     Result := MatchPatternElement(-1, curEnv.tok_1);
+     Result := MatchPatternElement(-1, curEnv.tok_1, curEnv.caseSen);
   end;
   2: begin  //hay elem[-2],elem[-1]
-        Result := MatchPatternElement(-1, curEnv.tok_1) and
-                  MatchPatternElement(-2, curEnv.tok_2);
+        Result := MatchPatternElement(-1, curEnv.tok_1, curEnv.caseSen) and
+                  MatchPatternElement(-2, curEnv.tok_2, curEnv.caseSen);
   end;
   3: begin  //hay elem[-3],elem[-2],elem[-1]
-        Result := MatchPatternElement(-1, curEnv.tok_1) and
-                  MatchPatternElement(-2, curEnv.tok_2) and
-                  MatchPatternElement(-3, curEnv.tok_3);
+        Result := MatchPatternElement(-1, curEnv.tok_1, curEnv.caseSen) and
+                  MatchPatternElement(-2, curEnv.tok_2, curEnv.caseSen) and
+                  MatchPatternElement(-3, curEnv.tok_3, curEnv.caseSen);
   end;
   end;
 end;
-function TFaOpenPattern.MatchPatternAfter(const curEnv: TFaCursorEnviron;
-  CaseSensComp: boolean): boolean;
+function TFaOpenPattern.MatchPatternAfter(const curEnv: TFaCursorEnviron
+  ): boolean;
 {Verifica si el patrón indicado, cumple con las condiciones actuales (after)}
 begin
-  CaseSens := CaseSensComp;
   case nAft of
   0: begin  //no hay elementos, siempre cumple
     exit(true);
   end;
   1: begin  //hay elem[0]
       //es independiente de "inMidTok"
-      Result := MatchPatternElement(0, curEnv.tok0);
+      Result := MatchPatternElement(0, curEnv.tok0, curEnv.caseSen);
     end;
   end;
 end;
-function TFaOpenPattern.MatchPattern(const curEnv: TFaCursorEnviron;
-  CaseSensComp: boolean): boolean;
-    function ItemInBlock(i: Integer): boolean;  inline;
-    begin
-    //  Result := (block = nil) or //es válido para todos los bloques
-    //            (block = curEnv.curBlock);
-    end;
+function TFaOpenPattern.MatchPattern(const curEnv: TFaCursorEnviron): boolean;
+  function ItemInBlock: boolean;  inline;
+  begin
+    Result := (block = nil) or //es válido para todos los bloques
+              (block = curEnv.curBlock);
+  end;
 begin
-  Result := MatchPatternBefore(curEnv, CaseSensComp) and
-            MatchPatternAfter(curEnv, CaseSensComp);  //falta verificar bloque
+  Result := MatchPatternBefore(curEnv) and
+            MatchPatternAfter(curEnv) and ItemInBlock;
 end;
 procedure TFaOpenPattern.AddItem(txt: string; blk: TFaSynBlock);
 {Agrega un ítem al patrón de apertura}
@@ -1241,6 +1325,7 @@ begin
   end;
   setlength(opPat.Items, 0);  //inicia tabla de ítems
   opPat.filter := filter;     //fija filtro
+  opPat.block := nil;
   OpenPatterns.Add(opPat);   //agrega
   Result := opPat;  //devuelve referencia
 end;
@@ -1290,17 +1375,17 @@ begin
     end;
   end;
   //Prepara para llenar la lista de completado
-  curEnv.LookAround(ed);  //Lee entorno.
+  curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
   debugln('OnExecute: explorando entorno.');
   //Verifica los patrones de apertura que se aplicarán
   ActiveOpenPatterns.Clear;
   for opPat in OpenPatterns do begin
-    if opPat.MatchPattern(curEnv, CaseSensComp) then begin
+    if opPat.MatchPattern(curEnv) then begin
       //Se cumple el patrón en la posición actual del cursor
       {carga los ítems con los que trabajará. Aquí se puede aprovechar para cargar solo los
       necesarios (como los que empìecen con la primera letra del token actual), y así acelerar
       el filtrado posterior. }
-      opPat.LoadItems(curEnv, CaseSensComp);
+      opPat.LoadItems(curEnv);
 
       ActiveOpenPatterns.Add(opPat);   //guarda en la lista
       if opPat.StpScan then break;  //ya no explora otros patrones de apertura
@@ -1321,27 +1406,27 @@ begin
 end;
 procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
-procedure SeleccionarPalabra;
-//Selecciona, la palabra actual de la lista de completado. Usamos nuestra propia
-//rutina en vez de OnValidate(), para poder reemplazar identificadores de acuerdo
-//a la definición de sintaxis, además de otros tipos de tokens.
-var
-  NewWord: String;
-  Pos1: TPoint;
-  Pos2: TPoint;
-begin
-  if CurrentLines = nil then exit;
-  //Reemplaza actual
-//  ShowMessage(tok0.txt);
-  NewWord := MenuComplet.ItemList[MenuComplet.Position];
-  //calcula intervalo del token
-  Pos1 := Point(curEnv.tok0^.posIni+1,ed.CaretY);
-  Pos2 := Point(curEnv.tok0^.posIni+curEnv.tok0^.length+1,ed.CaretY);
-//  ShowMessage(IntToStr(tok0.posIni+1)+','+IntToStr(tok0.posIni+tok0.length+1)) ;
-  ed.TextBetweenPoints[Pos1,Pos2] := NewWord;  //usa TextBetweenPoints(), para poder deshacer
-  ed.LogicalCaretXY :=Point(curEnv.tok0^.posIni+length(NewWord)+1,ed.CaretY);  //mueve cursor
-  CloseCompletionWindow;  //cierra
-end;
+  procedure SeleccionarPalabra;
+  //Selecciona, la palabra actual de la lista de completado. Usamos nuestra propia
+  //rutina en vez de OnValidate(), para poder reemplazar identificadores de acuerdo
+  //a la definición de sintaxis, además de otros tipos de tokens.
+  var
+    NewWord: String;
+    Pos1: TPoint;
+    Pos2: TPoint;
+  begin
+    if CurrentLines = nil then exit;
+    //Reemplaza actual
+  //  ShowMessage(tok0.txt);
+    NewWord := MenuComplet.ItemList[MenuComplet.Position];
+    //calcula intervalo del token
+    Pos1 := Point(curEnv.tok0^.posIni+1,ed.CaretY);
+    Pos2 := Point(curEnv.tok0^.posIni+curEnv.tok0^.length+1,ed.CaretY);
+  //  ShowMessage(IntToStr(tok0.posIni+1)+','+IntToStr(tok0.posIni+tok0.length+1)) ;
+    ed.TextBetweenPoints[Pos1,Pos2] := NewWord;  //usa TextBetweenPoints(), para poder deshacer
+    ed.LogicalCaretXY :=Point(curEnv.tok0^.posIni+length(NewWord)+1,ed.CaretY);  //mueve cursor
+    CloseCompletionWindow;  //cierra
+  end;
 begin
 //debugln('Form.OnKeyDown:'+ XXX +':'+IntToStr(ed.CaretX));
   case Key of
@@ -1379,7 +1464,7 @@ begin
         if Shift = [] then begin  //son Ctrl o Shift
            ed.CommandProcessor(ecDeleteLastChar, #0, nil);  //envía al editor
            if CheckForClose then begin Key:=VK_UNKNOWN;; exit end;
-           curEnv.LookAround(ed);  //solo para actualizar el identificador actual
+           curEnv.LookAround(ed, CaseSensComp);  //solo para actualizar el identificador actual
            FillCompletMenuFiltered;
         end;
         Key:=VK_UNKNOWN;   //marca para que no lo procese SynCompletion
@@ -1442,7 +1527,7 @@ begin
   //ahora ya tenemos al editor cambiado
 //debugln('Form.OnKeyPress:'+xxx);
 //Las posibles opciones ya se deben haber llenado. Aquí solo filtramos.
-  curEnv.LookAround(ed);  //solo para actualizar el identificador actual
+  curEnv.LookAround(ed, CaseSensComp);  //solo para actualizar el identificador actual
   if CheckForClose then exit;
   FillCompletMenuFiltered;
 end;
