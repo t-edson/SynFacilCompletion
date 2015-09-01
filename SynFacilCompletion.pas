@@ -114,7 +114,7 @@ type
     hlt: TSynFacilSyn;        //referencia al resaltador que lo contiene
     tokens   : TATokInfo;     //lista de tokens actuales
     StartIdentif : integer;   //inicio de identificador
-    function UpdateStartIdentif: integer;
+    procedure UpdateStartIdentif;
   public
     inMidTok : boolean;        //indica si el cursor está en medio de un token
     tok0     : TFaTokInfoPtr;  //referencia al token actual.
@@ -145,12 +145,6 @@ type
     Items: array of TFaCompletItem;   //lista de las palabras disponibles para el completado
     Avails: array of TFaCompletItemPtr;  {referencia a los ítems a cargar cuando se active el
                                           patrón. Se usa punteros para no duplicar datos}
-    function MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
-      CaseSens: boolean): boolean;
-    function MatchPatternBefore(const curEnv: TFaCursorEnviron): boolean;
-    function MatchPatternAfter(const curEnv: TFaCursorEnviron): boolean;
-    function MatchPattern(const curEnv: TFaCursorEnviron): boolean;
-  public
     {Los índices de elem [] representan posiciones relativas de tokens
       [0]  -> Token que está justo después del cursor (token actual)
       [-1] -> Token que está antes del token actual
@@ -160,9 +154,15 @@ type
     elem : array[-3..0] of TFaPatternElement;
     nBef : integer;   //número de elementos válidos haste el ítem 0 (puede ser 0,1,2 o 3)
     nAft : integer;   //número de elementos válidos depués del ítem 0 (puede ser 0 o 1)
+    function MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
+      CaseSens: boolean): boolean;
+    function MatchPatternBefore(const curEnv: TFaCursorEnviron): boolean;
+    function MatchPatternAfter(const curEnv: TFaCursorEnviron): boolean;
+    function MatchPattern(const curEnv: TFaCursorEnviron): boolean;
+  public
+    startX: integer;   //posición inicial del token o identificador de trabajo
     filter: TFaFilterList;
     block : TFaSynBlock;  //bloque donde es válido
-    StpScan: boolean;  //indica si debe detener la exploración después de uan coincidencia
     function ExtractItem(var pat: string): string;
     procedure ShiftPatterns;  //Desplaza los elemntos
     procedure LoadItems(const curEnv: TFaCursorEnviron);
@@ -232,8 +232,8 @@ type
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
   private  //manejo de patrones de apertura
-    OpenPatterns: TFaOpenPatterns;     //lista de patrones de apertura
-    ActiveOpenPatterns: TFaOpenPatterns;  {patrones de apertura que se aplican an estado actual}
+    OpenPatterns: TFaOpenPatterns;  //lista de patrones de apertura
+    CurOpenPat  : TFaOpenPattern;   //patrón de apertura que se aplica en el momento
     CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     procedure ProcXMLOpenOn(nodo: TDOMNode);
   public
@@ -242,7 +242,7 @@ type
     CaseSensComp: boolean;     //Uso de caja, en autocompletado
     OpenOnKeyUp: boolean;   //habilita que se abra automáticamente al soltar una tecla
     function AddOpenPattern(AfterPattern, BeforePattern: string;
-      filter: TFaFilterList; StopScan: boolean): TFaOpenPattern;
+      filter: TFaFilterList): TFaOpenPattern;
     function AddComplList(lstName: string): TFaCompletionList;
     procedure LoadFromFile(Arc: string); override;
     function LoadSyntaxFromPath(SourceFile: string; path: string;
@@ -289,7 +289,6 @@ const
   //Para el reconocimiento de identificadores, cuando se usa "fil_LastIdent" y "fil_LastIdentPart"
   CHAR_STRT_IDEN = ['a'..'z','A'..'Z','_'];
   CHAR_BODY_IDEN = CHAR_STRT_IDEN + ['0'..'9'];
-  CHR_NO_STRT_IDEN = CHAR_BODY_IDEN - CHAR_STRT_IDEN;   //no son inicio de identificador
 
 function ReadExtenFromXML(XMLfile: string): string;
 //Lee las extensiones que tiene definidas un archivo de sintaxis.
@@ -405,7 +404,7 @@ begin
   curBlock := nil;
   //explora la línea con el resaltador
   hlt.ExploreLine(ed.CaretXY, tokens, iTok0);
-  curLine := ed.Lines[ed.CaretY]; { TODO : Para evitar perder tiempo copiando la línea actual, se
+  curLine := ed.Lines[ed.CaretY-1]; { TODO : Para evitar perder tiempo copiando la línea actual, se
                                    podría usar una versión de ExploreLine() que devuelva la línea
                                    actual, ya que esta copia es creada ya dentro de ExploreLine()
                                    y mejor aún que explore solo hasta el token[0]}
@@ -447,29 +446,25 @@ begin
 //  Result := copy(tok0^.txt,1,CurX-tok0^.posIni-1);
   Result := copy(tok_1^.txt, 1, CurX-tok_1^.posIni-1);
 end;
-function TFaCursorEnviron.UpdateStartIdentif: integer;
-{Actualiza el índice al inicio del identificador anterior, a la posición actual del cursor}
+procedure TFaCursorEnviron.UpdateStartIdentif;
+{Actualiza el índice al inicio del identificador anterior, a la posición actual del cursor.
+ Este es un algoritmo, un poco especial, porque los identificadores no se
+ definen para explorarlos hacia atrás.}
 var
   i: Integer;
 begin
   StartIdentif := -1;   //valor por defecto
   if CurX<=1 then exit;  //está al inicio
   i:= CurX-1;  //caracter anterior al cursor
-  {Se asume que el cursor, estaá después de un identificador y retrocede por los
-  caracteres hasta encontrar un caracter del cuerpo del identificador, que no sea
-  un caracter de inicio}
-  while (i>1) and (curLine[i] in CHR_NO_STRT_IDEN) do
+  {Se asume que el cursor, está después de un identificador y retrocede por los
+  caracteres hasta encontrar un caracter que pueda ser inicio de identificador}
+  while (i>0) and (curLine[i] in CHAR_BODY_IDEN) do begin
+    if curLine[i] in CHAR_STRT_IDEN then begin
+       StartIdentif := i;    //guarda una posible posición de inicio
+    end;
     dec(i);
-  //Se detuvo porque llego al inicio o encontró un caracter que no está en CHR_NO_STRT_IDEN
-  //Verifica
-  if curLine[1] in CHAR_STRT_IDEN then  begin
-    //Es totalmente posible encontrar un identificador antes del cursor
-    StartIdentif := i;
-  end else begin
-    StartIdentif := -1;
   end;
 end;
-
 function TFaCursorEnviron.HaveLastIdent: boolean;
 {Indica si hay un identificador antes del cursor. Debe llamarse siempre antes de
  usar LastIdent().}
@@ -488,7 +483,7 @@ begin
   i := CurX;
   while curLine[i] in CHAR_BODY_IDEN do  //no debería ser necesario verificar el final
     inc(i);
-  Result := copy(curLine, StartIdentif, CurX-i+1);
+  Result := copy(curLine, StartIdentif, CurX-StartIdentif+1);
 end;
 function TFaCursorEnviron.LastIdentPart: string;
 {Devuelve el identificador anterior al cursor. Debe llamarse siempre despues de llamar
@@ -508,8 +503,8 @@ begin
   pat := trim(pat);     //quita espacios
   if pat='' then exit('');  //no hay más elementos
   if pat[1] in WORD_CHARS then begin
-    //es una palabra
-    //captura nombre de tipo de token o la cadena especial "AllIdentifiers"
+    //Es un identificador.
+    //Captura nombre de tipo de token o la cadena especial "AllIdentifiers"
     i := 1;
     while (i<=length(pat)) and (pat[i] in WORD_CHARS)  do begin
       inc(i);
@@ -531,7 +526,8 @@ begin
   pat := copy(pat, i, 200); //recorta
   pat := trim(pat);     //quita espacios
   //quita posible coma final
-  if (pat<>'') and (pat[i] = ',') then pat := copy(pat, 2, 200);
+  if (pat<>'') and (pat[1] = ',') then
+    pat := copy(pat, 2, 200);
 end;
 procedure TFaOpenPattern.ShiftPatterns;
 {Desplaza un elemento del patrón, poniendo el de menor índice en pak_none. No toca el de
@@ -583,12 +579,14 @@ begin
     for i:=0 to high(Items) do begin
       Avails[i] := @Items[i];
     end;
+    startX := curEnv.CurX;   //como no hay palabra de trabajo
   end;
   fil_LastTok,
   fil_LastTokPart: begin    //se usará el último token
     if curEnv.HaveLastTok then begin
       //hay un token anterior
-      debugln(' lastTok:'+curEnv.LastTok);
+//      debugln(' lastTok:'+curEnv.LastTok);
+      startX := curEnv.tok_1^.posIni;   //inicio del token
       FilterByChar(curEnv.LastTok[1]);   //primer caracter como filtro (peor caso)
     end;
   end;
@@ -596,12 +594,14 @@ begin
   fil_LastIdentPart: begin    //se usará el último identif.
     if curEnv.HaveLastIdent then begin
       //hay un token anterior
-      debugln(' LastIden:'+curEnv.LastIdent);
-      FilterByChar(curEnv.LastIdent[1]);  //primer caracter como filtro (peor caso)
+//      debugln(' LastIden:'+curEnv.LastIdent);
+      startX := curEnv.StartIdentif;   //es fácil sacra el inicio del identificador
+      FilterByChar(curEnv.LastIdentPart[1]);  //primer caracter como filtro (peor caso)
     end;
   end;
   else   //no debería pasar
     SetLength(Avails, 0);
+    startX := curEnv.CurX;
   end;
 end;
 procedure TFaOpenPattern.FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings);
@@ -651,7 +651,14 @@ begin
       if env.HaveLastTok then
         FilterBy(env.LastTokPart);
     end;
-
+  fil_LastIdent: begin  //último token
+      if env.HaveLastIdent then
+        FilterBy(env.LastIdent);
+    end;
+  fil_LastIdentPart: begin  //último token hasta el cursor
+      if env.HaveLastIdent then
+        FilterBy(env.LastIdentPart);
+    end;
   end;
 end;
 function TFaOpenPattern.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
@@ -999,14 +1006,13 @@ var
   listIden: string;
   tBefPatt, tAftPatt: TFaXMLatrib;
   filt: TFaFilterList;
-  tFilPatt, fStpScan: TFaXMLatrib;
+  tFilPatt: TFaXMLatrib;
   oPat: TFaOpenPattern;
 begin
   tBefPatt := ReadXMLParam(nodo,'BeforePattern');
   tAftPatt := ReadXMLParam(nodo,'AfterPattern');
   tFilPatt := ReadXMLParam(nodo,'FilterBy');
-  fStpScan := ReadXMLParam(nodo,'StopScan');
-  CheckXMLParams(nodo, 'BeforePattern AfterPattern FilterBy StopScan');  //puede generar excepción
+  CheckXMLParams(nodo, 'BeforePattern AfterPattern FilterBy');  //puede generar excepción
   if tFilPatt.hay then begin
     case UpCase(tFilPatt.val) of
     'NONE'           : filt := fil_None;
@@ -1020,7 +1026,7 @@ begin
   end else begin
     filt := fil_LastTokPart;   //valro por defecto
   end;
-  oPat := AddOpenPattern(tAftPatt.val, tBefPatt.val, filt, fStpScan.bol);
+  oPat := AddOpenPattern(tAftPatt.val, tBefPatt.val, filt);
   //verifica contenido
   listIden := nodo.TextContent;
   if listIden<>'' then begin
@@ -1046,7 +1052,7 @@ var
 begin
   hayOpen := false;  //inicia bandera
   //crea patrón de apertura por defecto
-  defPat := AddOpenPattern('Identifier', '', fil_LastTokPart, true);
+  defPat := AddOpenPattern('Identifier', '', fil_LastTokPart);
   ////////// explora nodos hijos //////////
   for i := 0 to nodo.ChildNodes.Count-1 do begin
     nodo2 := nodo.ChildNodes[i];
@@ -1133,7 +1139,6 @@ begin
   OpenOnKeyUp := true;     //por defecto
   ReadSpecialIdentif;      //carga los identificadores especiales
   OpenPatterns.Clear;      //limpia patrones de apertura
-  ActiveOpenPatterns.Clear;
   CompletLists.Clear;
   try
     ReadXMLFile(doc, Arc);  //carga archivo
@@ -1202,14 +1207,14 @@ function TSynFacilComplet.CheckForClose: boolean;
 begin
   Result := false;
   //verifica si sale de token actual
-  if ed.CaretX <= Pos0.x then begin
+  if (CurOpenPat<>nil) and (ed.CaretX <= CurOpenPat.startX) then begin
     MenuComplet.Deactivate;
     Result := true;
   end;
 end;
 
 function TSynFacilComplet.AddOpenPattern(AfterPattern, BeforePattern: string;
-                                filter: TFaFilterList; StopScan: boolean): TFaOpenPattern;
+                                filter: TFaFilterList): TFaOpenPattern;
 {Permite agregar un patrón de apertura. Devuelve una referencia al patrón agregado.}
   procedure AddElement(strElem: string; var patEle: TFaPatternElement; var success: boolean);
   {Agrega un elemento a un registro TFaOpenPattern, de acuerdo a su contenido.}
@@ -1368,8 +1373,8 @@ begin
         //La tecla pulsada no es un caracter imprimible
         exit;
       end;
-      //Verifica si es tecla válida
-      if not (utKey[1] in ['a'..'z','A'..'Z',' ',#9]) then begin
+      //Verifica si es tecla válida, como posible disparador de completado
+      if not (utKey[1] in ['a'..'z','A'..'Z',' '..'/',#9]) then begin
         exit;
       end;
     end;
@@ -1378,7 +1383,7 @@ begin
   curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
   debugln('OnExecute: explorando entorno.');
   //Verifica los patrones de apertura que se aplicarán
-  ActiveOpenPatterns.Clear;
+  CurOpenPat := nil;
   for opPat in OpenPatterns do begin
     if opPat.MatchPattern(curEnv) then begin
       //Se cumple el patrón en la posición actual del cursor
@@ -1386,12 +1391,11 @@ begin
       necesarios (como los que empìecen con la primera letra del token actual), y así acelerar
       el filtrado posterior. }
       opPat.LoadItems(curEnv);
-
-      ActiveOpenPatterns.Add(opPat);   //guarda en la lista
-      if opPat.StpScan then break;  //ya no explora otros patrones de apertura
+      CurOpenPat := opPat;   //guarda referencia
+      break;  //ya sigue explorando
     end;
   end;
-  FillCompletMenuFiltered;
+  FillCompletMenuFiltered;  //hace el primer filtrado
 
 //Después de llenar la lista, se puede ver si tiene o no elementos
   if MenuComplet.ItemList.Count <> 0 then begin  //se abrirá
@@ -1463,7 +1467,9 @@ begin
     VK_BACK: begin
         if Shift = [] then begin  //son Ctrl o Shift
            ed.CommandProcessor(ecDeleteLastChar, #0, nil);  //envía al editor
-           if CheckForClose then begin Key:=VK_UNKNOWN;; exit end;
+           if CheckForClose then begin
+             Key:=VK_UNKNOWN; exit
+           end;
            curEnv.LookAround(ed, CaseSensComp);  //solo para actualizar el identificador actual
            FillCompletMenuFiltered;
         end;
@@ -1582,8 +1588,8 @@ begin
   { Este proceso puede ser lento si se actualizan muchas opciones en la lista }
   MenuComplet.ItemList.Clear;  {Limpia todo aquí porque este método es llamado desde distintos
                                 puntos del programa.}
-  for opPat in ActiveOpenPatterns do begin
-    opPat.FillFilteredIn(curEnv, MenuComplet.ItemList);
+  if CurOpenPat <> nil then begin
+    CurOpenPat.FillFilteredIn(curEnv, MenuComplet.ItemList);
   end;
   MenuComplet.Refresh;
 end;
@@ -1608,7 +1614,6 @@ begin
   inherited Create(AOwner);
   curEnv   := TFaCursorEnviron.Create(self);
   OpenPatterns := TFaOpenPatterns.Create(True);
-  ActiveOpenPatterns := TFaOpenPatterns.Create(False);
   CompletLists := TFaCompletionLists.Create(true);
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
@@ -1621,7 +1626,6 @@ destructor TSynFacilComplet.Destroy;
 begin
   if MenuComplet<>nil then MenuComplet.Destroy;  //por si no lo liberaron
   CompletLists.Destroy;
-  ActiveOpenPatterns.Destroy;
   OpenPatterns.Destroy;
   curEnv.Destroy;
   inherited Destroy;
