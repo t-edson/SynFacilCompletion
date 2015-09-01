@@ -288,7 +288,8 @@ const
 
   ERR_ATTRIB_NO_EXIST = 'Attribute %s doesn''t exist. (label <COMPLETION ...>)';
   ERR_FILTER_NO_EXIST = 'Filter %s doesn''t exist. (label <OpenOn ...>)';
-  ERR_ACTION_NO_EXIST = 'aCTION %s doesn''t exist. (label <OpenOn ...>)';
+  ERR_ACTION_NO_EXIST = 'Action %s doesn''t exist. (label <OpenOn ...>)';
+  ERR_INVAL_LAB_OPNON = 'Invalid label %s for <OpenOn ...>';
   ERR_INVAL_LAB_COMP = 'Invalid label %s for  <COMPLETION ...>';
   ERR_INVAL_BLK_NAME = 'Invalid block name.';
   ERROR_LOADING_ = 'Error loading: ';
@@ -1097,6 +1098,10 @@ var
   blk: TFaSynBlock;
   success: boolean;
   tActPatt: TFaXMLatrib;
+  tIncAttr, tIncList: TFaXMLatrib;
+  tipTok: TSynHighlighterAttributes;
+  i,j : Integer;
+  nodo2: TDOMNode;
 begin
   tNamPatt := ReadXMLParam(nodo,'Name');
   tBefPatt := ReadXMLParam(nodo,'BeforePattern');
@@ -1154,6 +1159,39 @@ begin
     //Se ha especificado lista de palabras. Los carga
     oPat.AddItems(listIden, nil);
   end;
+  //explora nodos
+  for i := 0 to nodo.ChildNodes.Count-1 do begin
+    nodo2 := nodo.ChildNodes[i];
+    if UpCAse(nodo2.NodeName)='INCLUDE' then begin  //incluye lista de palabras por atributo
+      //lee parámetros
+      tIncAttr := ReadXMLParam(nodo2,'Attribute');
+      tIncList := ReadXMLParam(nodo2,'List');
+      CheckXMLParams(nodo2, 'Attribute List');  //puede generar excepción
+      if tIncAttr.hay then begin
+        //se pide agregar la lista de identificadores de un atributo en especial
+        if IsAttributeName(tIncAttr.val)  then begin
+          tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+          //busca los identificadores para agregarlos
+          for j:= 0 to high(SpecIdentifiers) do begin
+            if SpecIdentifiers[j].tTok = tipTok then begin
+              oPat.AddItem(SpecIdentifiers[j].orig); {Agrega a lista por defecto.}
+            end;
+          end;
+        end else begin  //atributo no existe
+          raise ESynFacilSyn.Create(Format(ERR_ATTRIB_NO_EXIST,[nodo2.NodeValue]));
+        end;
+      end;
+      if tIncList.hay then begin
+
+      end;
+    end else if nodo2.NodeName='#text' then begin
+      //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
+    end else if LowerCase(nodo2.NodeName) = '#comment' then begin
+      //solo para evitar que de mensaje de error
+    end else begin
+      raise ESynFacilSyn.Create(Format(ERR_INVAL_LAB_OPNON,[nodo2.NodeName]));
+    end;
+  end;
 end;
 procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //Procesa la etiqueta <Completion>, que es el bloque que define todo el sistema de
@@ -1202,7 +1240,7 @@ begin
       //Esta forma de declaración permite definir un orden en la carga de listas
       //lee parámetros
       tLstName :=  ReadXMLParam(nodo2,'Name');
-      CheckXMLParams(nodo2, 'Block Name');  //puede generar excepción
+      CheckXMLParams(nodo2, 'Name');  //puede generar excepción
       if not tLstName.hay then begin
         tLstName.val:='#list'+IntToStr(CompletLists.Count);
       end;
