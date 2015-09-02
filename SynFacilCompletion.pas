@@ -1,6 +1,6 @@
 {
-SynFacilCompletion 1.1b
-=======================
+SynFacilCompletion 1.1
+======================
 Por Tito Hinostroza 19/12/2014
 * Se crean tipos nuevos para soportar patrones de apertura del completado.
 * Se agrega soporte para la etiqueta <OpenOn ... >
@@ -23,11 +23,11 @@ en lugar de copiar sus ítems.
 la deifnición clásica.
 * Incluir el manejo de las ventanas de tipo "Tip", como ayuda para lso parámetros de las
 funciones.
-* Hacer que la ventaan de completado haga seguimiento del cursor,cuanado este retrocede
+* Hacer que la ventaan de completado haga seguimiento del cursor, cuando este retrocede
 mucho en un identificador.
 * Incluir un método en TFaOpenPattern, para extraer elementos de una cadena y así
 simplificar AddOpenPattern().
-* Incluri íconos en la visualizción de la ventana de completado.
+* Incluir íconos en la visualización de la ventana de completado.
 
 
 En resumen, se cambia la lógica general de la función de completado, dotándole de mayor

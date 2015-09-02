@@ -1,4 +1,4 @@
-SynFacilCompletion 1.1b
+SynFacilCompletion 1.1
 ======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -7,16 +7,16 @@ Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus
 
 This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and includes all his options, and others special for defining the code-completion feature.
 
-This library works in the same way that the SynFacilSyn library works. It uses a XML file for to define the syntax, and additionally, the words for the completion code.
+This library works in the same way that the SynFacilSyn library works. It uses a XML file to define the syntax, and additionally, the words for the completion code.
  
 In the XML file, it's added the label "COMPLETION" for defining a list of words for using when writing code on the editor.
 
 ## Using in a program.
 
-There are 3 units for to include  when using this library:
+There are 3 units to include when using this library:
 
-* SynFacilBasic.pas  (version 1.0 or higher)
-* SynFacilHighlighter.pas  (version 1.0 or higher)
+* SynFacilBasic.pas  (version 1.1 or higher)
+* SynFacilHighlighter.pas  (version 1.1 or higher)
 * SynFacilCompletion.pas
 
 Only the unit 'SynFacilCompletion' is necessary to include in the section USES of the programs. 'SynFacilHighlighter' is used by 'SynCompletionFacil' and must be accessible.
@@ -36,7 +36,7 @@ begin
 end;
 ```
 
-The completion menu will open, when pressing Ctrl+Space, but if we want to auto-open the completion mennu, when pressing a key, we must intercept the KeyUp() event, of the SynEdit:
+The completion menu will open, when pressing Ctrl+Space, but if we want to auto-open the completion menu, when pressing a key, we must intercept the KeyUp() event, of the SynEdit:
 
 ```
 procedure TForm1.edKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
@@ -85,9 +85,9 @@ The next XML file, define three words for the completion menu:
 ```
 This is the simpler way for to define a list of words for the completion menu. It will be shown, when a key is pressed, if this option is enabled.
 
-There is some parameters for to include on the tag <Completion>. They are:
+There is some parameters to include on the tag <Completion>. They are:
 
-* CaseSensitive -> True or false. Define if the completion function use or not the case of the text for to work.
+* CaseSensitive -> True or false. Define if the completion function use or not the case of the text to work.
 * OpenOnKeyUp -> Enabled if the completion menu is shown when a Key is pressed (released). It's enabled by default.
 * SelectOnEnter -> Let to select a word of the completion menu, using the <enter> key.
 
@@ -114,7 +114,27 @@ It's possible to use too, the list of Keywords (or another group) like words for
 
 In this way, we avoid to repeat all the list of keywords again.
 
-This library is still in a early state of development, and could change a lot in the future.
+## Using list of words for completion
+
+The words for completion, can be grouped on list using the tag <LIST>, like in the following definition:
+
+```
+<Language>
+  <Completion OpenOnKeyUp="false">
+  <List Name="MyList"> foo bar foobar
+  </List>
+
+  <List Name="MyList2"> foo2 bar2 foobar2
+  </List>
+
+  </Completion>
+  ...
+  
+</Language>
+```
+
+Having lists in this way, make easy to classify the total words for completion, and can be reused when using advanced definitions.
+
 
 For more information, check the documentation.
 
