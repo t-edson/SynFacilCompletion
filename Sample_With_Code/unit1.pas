@@ -63,7 +63,7 @@ begin
   //define completion
   hlt1.CompletionOn:=true;
   hlt1.OpenOnKeyUp:=true;
-  defPat := hlt1.AddOpenPattern('Identifier', '', fil_None, true);
+  defPat := hlt1.AddOpenPattern('Identifier', '', fil_LastTokPart);
   defPat.AddItems('begin end var const type', nil);
   defPat.AddItems('case class if else exit unit', nil);
   defPat.AddItems('for function procedure property', nil);
