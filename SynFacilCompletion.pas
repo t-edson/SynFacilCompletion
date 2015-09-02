@@ -15,7 +15,22 @@ verificación para la apertura de la ventana de completado.
 * Se crea la clase TFaCursorEnviron, para adminitrar el entorno del cursor.
 * Se crea la clase TFaCompletionLists, y se manejan las listas como objetos.
 
-En resumen, se cambai la lógica general de la función de completado, dotándole de mayor
+Pendientes:
+* Verificar el correcto funcionamiento de todas las opciones,
+* Hacer que las listas se guarden en los patrones de apertura, como referencias a la lista
+en lugar de copiar sus ítems.
+* Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificsr
+la deifnición clásica.
+* Incluir el manejo de las ventanas de tipo "Tip", como ayuda para lso parámetros de las
+funciones.
+* Hacer que la ventaan de completado haga seguimiento del cursor,cuanado este retrocede
+mucho en un identificador.
+* Incluir un método en TFaOpenPattern, para extraer elementos de una cadena y así
+simplificar AddOpenPattern().
+* Incluri íconos en la visualizción de la ventana de completado.
+
+
+En resumen, se cambia la lógica general de la función de completado, dotándole de mayor
 flexibilidad para manejar casos muy diferentes, al común reemplazio del identificador
 actual. Se mantiene la compatibilidad para las definiciones simples.
 
@@ -141,9 +156,10 @@ type
 
   //Acciones válidas que se realizarán al seleccionar un ítem
   TFAPatAction = (
-    pac_None,     //no se realiza ninguna acción
-    pac_Default,  //acción pro defecto
-    pac_Insert     //se inserta el texto seleccionado en la posición del cursor
+    pac_None,       //no se realiza ninguna acción
+    pac_Default,    //acción pro defecto
+    pac_Insert,     //se inserta el texto seleccionado en la posición del cursor
+    pac_Rep_LastTok //se reemplaza el token anterior
   );
   //Patrón de coincidencia para abrir la lista de completado
   { TFaOpenPattern }
@@ -182,6 +198,7 @@ type
     procedure LoadItems(const curEnv: TFaCursorEnviron);
     procedure AddItem(txt: string);
     procedure AddItems(lst: TStringList; blk: TFaSynBlock);
+    procedure AddItems(const lItems: TFaCompletItems);
     procedure AddItems(list: string; blk: TFaSynBlock);
     procedure ClearItems;
   public
@@ -256,6 +273,7 @@ type
     function AddOpenPattern(AfterPattern, BeforePattern: string;
       filter: TFaFilterList): TFaOpenPattern;
     function AddComplList(lstName: string): TFaCompletionList;
+    function GetListByName(lstName: string): TFaCompletionList;
     procedure LoadFromFile(Arc: string); override;
     function LoadSyntaxFromPath(SourceFile: string; path: string;
       CaseSens: boolean=false): string;
@@ -614,12 +632,18 @@ begin
       Pos2 := Point(env.CurX, env.CurY);
       ed.TextBetweenPoints[Pos1,Pos2] := itemSel;
       ed.LogicalCaretXY :=Point(ed.CaretX+length(itemSel),ed.CaretY);  //mueve cursor
-    end
+    end;
+  pac_Rep_LastTok: begin
+      if env.HaveLastTok then
+        env.ReplaceLastTok(ed, itemSel);
+      //posiciona al cursor al final de la palabra reemplazada
+      ed.LogicalCaretXY :=Point(env.tok_1^.posIni+length(itemSel)+1,ed.CaretY);  //mueve cursor
+  end;
+  {Se pueden completar más acciones}
   else
     DoDefaultAction(ed, env, itemSel);
   end;
 end;
-
 procedure TFaOpenPattern.FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings);
 {Filtra los ítems que contiene (usando "env") y los pone en la lista indicada}
   procedure FilterBy(const str: string);
@@ -837,7 +861,7 @@ begin
   Items[n].OffCur.y:=0;
 end;
 procedure TFaOpenPattern.AddItems(lst: TStringList; blk: TFaSynBlock);
-{Agrega una lista de palabras al patrón de apertura. }
+{Agrega una lista de ítems al patrón de apertura, desde un  TStringList}
 var
   n: Integer;
   r : TFaCompletItem;
@@ -853,8 +877,24 @@ begin
     Items[n+i] := r;
   end;
 end;
+procedure TFaOpenPattern.AddItems(const lItems: TFaCompletItems);
+{Agrega una lista de ítems desde un arreglo TFaCompletItems}
+var
+  n: Integer;
+  r : TFaCompletItem;
+  i: Integer;
+begin
+  n := high(Items)+1;  //tamaño de matriz
+  setlength(Items, n+high(lItems)+1);
+  for i:= 0 to High(lItems) do begin
+    r.text    :=lItems[i].text;
+    r.content :=lItems[i].content;
+    r.OffCur  :=lItems[i].OffCur;
+    Items[n+i] := r;
+  end;
+end;
 procedure TFaOpenPattern.AddItems(list: string; blk: TFaSynBlock);
-{Agrega una lista de palabras al patrón de apertura. }
+{Agrega una lista de ítems al patrón de apertura, desde una cadena }
 var
   lst: TStringList;
 begin
@@ -1089,12 +1129,10 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
 {Procesa el bloque <OpenOn ... >}
 var
   listIden: string;
-  tNamPatt: TFaXMLatrib;
-  tBefPatt, tAftPatt: TFaXMLatrib;
+  tNamPatt, tBefPatt, tAftPatt: TFaXMLatrib;
   filt: TFaFilterList;
-  tFilPatt: TFaXMLatrib;
+  tFilPatt, tBlkPatt: TFaXMLatrib;
   oPat: TFaOpenPattern;
-  tBlkPatt: TFaXMLatrib;
   blk: TFaSynBlock;
   success: boolean;
   tActPatt: TFaXMLatrib;
@@ -1102,6 +1140,7 @@ var
   tipTok: TSynHighlighterAttributes;
   i,j : Integer;
   nodo2: TDOMNode;
+  lst: TFaCompletionList;
 begin
   tNamPatt := ReadXMLParam(nodo,'Name');
   tBefPatt := ReadXMLParam(nodo,'BeforePattern');
@@ -1147,6 +1186,7 @@ begin
     'NONE'   : oPat.Action := pac_None;
     'DEFAULT': oPat.Action := pac_Default;
     'INSERT' : oPat.Action := pac_Insert;
+    'REPLASTTOK': oPat.Action := pac_Rep_LastTok;
     else
       raise ESynFacilSyn.Create(Format(ERR_ACTION_NO_EXIST,[tActPatt.val]));
     end;
@@ -1182,7 +1222,13 @@ begin
         end;
       end;
       if tIncList.hay then begin
+        //se pide agreagr los ítems de una lista
+        lst := GetListByName(tIncList.val);
+        if lst<>nil then begin
+          oPat.AddItems(lst.Items);
+        end else begin
 
+        end;
       end;
     end else if nodo2.NodeName='#text' then begin
       //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
@@ -1496,7 +1542,19 @@ begin
   CompletLists.Add(lst);
   Result := lst;
 end;
-
+function TSynFacilComplet.GetListByName(lstName: string): TFaCompletionList;
+{Devuelve la referencia a una lista, usando su nombre. Si no enecuentra devuelve NIL}
+var
+  l: TFaCompletionList;
+  UlstName: String;
+begin
+  UlstName := upcase(lstName);
+  for l in CompletLists do begin
+    if Upcase(l.Name) = UlstName then
+      exit(l);
+  end;
+  exit(nil);
+end;
 procedure TSynFacilComplet.OnCodeCompletion(var Value: string;
   SourceValue: string; var SourceStart, SourceEnd: TPoint; KeyChar: TUTF8Char;
   Shift: TShiftState);

@@ -28,21 +28,21 @@
         <UnitName Value="uSintax"/>
         <TopLine Value="246"/>
         <CursorPos Y="247"/>
-        <UsageCount Value="186"/>
+        <UsageCount Value="185"/>
       </Unit2>
       <Unit3>
         <Filename Value="usintaxsf.pas"/>
         <UnitName Value="uSintaxSF"/>
         <CursorPos X="32" Y="6"/>
         <FoldState Value=" T3jF0H3 pjXkD0M112S"/>
-        <UsageCount Value="186"/>
+        <UsageCount Value="185"/>
       </Unit3>
       <Unit4>
         <Filename Value="syncompletionq.pas"/>
         <UnitName Value="SynCompletionQ"/>
         <TopLine Value="1060"/>
         <CursorPos X="3" Y="1066"/>
-        <UsageCount Value="99"/>
+        <UsageCount Value="98"/>
       </Unit4>
       <Unit5>
         <Filename Value="synfacilcompletion.pas"/>
@@ -50,12 +50,12 @@
         <TopLine Value="388"/>
         <CursorPos X="3" Y="486"/>
         <FoldState Value=" TLi721012 TMkA01051715161 T3jR0N3 pjBje0%12251111]P6jT026 T0jby58837A T2o606u"/>
-        <UsageCount Value="98"/>
+        <UsageCount Value="97"/>
       </Unit5>
       <Unit6>
         <Filename Value="synhighlighterfacil.pas"/>
         <UnitName Value="SynHighlighterFacil"/>
-        <UsageCount Value="180"/>
+        <UsageCount Value="179"/>
         <Bookmarks Count="1"/>
       </Unit6>
       <Unit7>
@@ -64,14 +64,14 @@
         <TopLine Value="73"/>
         <CursorPos Y="88"/>
         <FoldState Value=" T3iG0A02111Z"/>
-        <UsageCount Value="7"/>
+        <UsageCount Value="6"/>
       </Unit7>
       <Unit8>
         <Filename Value="C:\lazarus\components\synedit\synedithighlighterfoldbase.pas"/>
         <UnitName Value="SynEditHighlighterFoldBase"/>
         <TopLine Value="737"/>
         <CursorPos X="15" Y="744"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit8>
       <Unit9>
         <Filename Value="C:\lazarus\components\synedit\synedithighlighter.pp"/>
@@ -79,28 +79,27 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1543"/>
         <CursorPos X="20" Y="1546"/>
-        <UsageCount Value="6"/>
+        <UsageCount Value="5"/>
       </Unit9>
       <Unit10>
         <Filename Value="C:\lazarus\fpc\2.6.2\source\rtl\objpas\classes\classesh.inc"/>
         <TopLine Value="668"/>
         <CursorPos X="15" Y="684"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit10>
       <Unit11>
         <Filename Value="C:\lazarus\fpc\2.6.2\source\rtl\objpas\classes\compon.inc"/>
         <TopLine Value="457"/>
         <CursorPos X="31" Y="457"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit11>
       <Unit12>
         <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
         <UnitName Value="SynCompletion"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="764"/>
         <CursorPos Y="803"/>
         <UsageCount Value="23"/>
-        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="C:\lazarus\lcl\controls.pp"/>
@@ -108,15 +107,15 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1008"/>
         <CursorPos X="31" Y="1023"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit13>
       <Unit14>
         <Filename Value="..\SynFacilCompletion.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="1162"/>
-        <CursorPos X="17" Y="1184"/>
-        <FoldState Value=" T4iO03 TCjFM4 TMnM06041E15152 T7lNM51 T8le231111]C3o50N5 pjNkE039]9KjZ083]9AiB2O2]96ja0X7]90]93[R4fi32P524[K4rM0{f['4]*iYpd042 T6o7026211F p0+U094 T0oFy581A3H1I]MvD46D]pgkHp4511B2214232161]NjEpCt8E6727 THyN2O2l"/>
+        <TopLine Value="608"/>
+        <CursorPos Y="623"/>
+        <FoldState Value=" T4iO03 TCjFM4 TMnP06041E16152 T7lcKB T8lg23131 T3o80N5 pjNkE039]9KjZ08022 pibjU0:3]9cja0D[T4A]I{K5]JgkR0S024]L0oD0{f4111[P4Yq8042 T6oA0262116 p0uC01714]AwU01 T0oIy581A4H1I]LvZ46D[{45Hp4512C2214232161]NjEpIt89156727 THyW2O2Z"/>
         <ExtraEditorCount Value="1"/>
         <ExtraEditor1>
           <EditorIndex Value="-1"/>
@@ -126,9 +125,9 @@
         </ExtraEditor1>
         <UsageCount Value="100"/>
         <Bookmarks Count="3">
-          <Item0 Y="1485" ID="3"/>
-          <Item1 X="10" Y="1147" ID="2"/>
-          <Item2 X="49" Y="1190" ID="1"/>
+          <Item0 Y="1516" ID="3"/>
+          <Item1 X="5" Y="261" ID="1"/>
+          <Item2 X="36" Y="1198" ID="2"/>
         </Bookmarks>
         <Loaded Value="True"/>
       </Unit14>
@@ -136,7 +135,7 @@
         <Filename Value="..\SynCompletionQ.pas"/>
         <TopLine Value="1351"/>
         <CursorPos X="3" Y="1367"/>
-        <UsageCount Value="8"/>
+        <UsageCount Value="7"/>
         <Bookmarks Count="1">
           <Item0 X="3" Y="1367" ID="2"/>
         </Bookmarks>
@@ -147,14 +146,14 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="133"/>
         <CursorPos X="44" Y="148"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit16>
       <Unit17>
         <Filename Value="..\..\SynFacilSyn 1.1\SynFacilBasic.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="208"/>
         <CursorPos X="14" Y="223"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="16"/>
       </Unit17>
       <Unit18>
         <Filename Value="..\..\SynFacilSyn 1.1\SynFacilHighlighter.pas"/>
@@ -168,7 +167,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="177"/>
         <CursorPos X="23" Y="192"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit19>
       <Unit20>
         <Filename Value="C:\lazarus\lcl\lclclasses.pp"/>
@@ -176,28 +175,28 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="27"/>
         <CursorPos X="33" Y="42"/>
-        <UsageCount Value="2"/>
+        <UsageCount Value="1"/>
       </Unit20>
       <Unit21>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\objpas\classes\classesh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="738"/>
         <CursorPos X="14" Y="752"/>
-        <UsageCount Value="4"/>
+        <UsageCount Value="3"/>
       </Unit21>
       <Unit22>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\objpas\sysutils\syspchh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="7"/>
         <CursorPos Y="24"/>
-        <UsageCount Value="6"/>
+        <UsageCount Value="5"/>
       </Unit22>
       <Unit23>
         <Filename Value="C:\lazarus\lcl\include\wincontrol.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="5724"/>
         <CursorPos Y="5748"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="9"/>
       </Unit23>
       <Unit24>
         <Filename Value="C:\lazarus\components\synedit\synedit.pp"/>
@@ -205,129 +204,129 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="4201"/>
         <CursorPos Y="4216"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="12"/>
       </Unit24>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1510" Column="16" TopLine="1494"/>
+        <Caret Line="1164" Column="9" TopLine="1163"/>
       </Position1>
       <Position2>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1419" TopLine="1304"/>
+        <Caret Line="1176" Column="17" TopLine="1158"/>
       </Position2>
       <Position3>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1123" Column="3" TopLine="1092"/>
+        <Caret Line="1169" Column="7" TopLine="1153"/>
       </Position3>
       <Position4>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="605" Column="7" TopLine="580"/>
+        <Caret Line="1172" Column="22" TopLine="1161"/>
       </Position4>
       <Position5>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="610" Column="7" TopLine="589"/>
+        <Caret Line="1174" Column="36" TopLine="1161"/>
       </Position5>
       <Position6>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="612" Column="7" TopLine="593"/>
+        <Caret Line="259" Column="66" TopLine="244"/>
       </Position6>
       <Position7>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="611" Column="25" TopLine="587"/>
+        <Caret Line="1507" Column="7" TopLine="1272"/>
       </Position7>
       <Position8>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="608" Column="13" TopLine="596"/>
+        <Caret Line="1508" Column="3" TopLine="1503"/>
       </Position8>
       <Position9>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1143" Column="12" TopLine="1106"/>
+        <Caret Line="259" Column="14" TopLine="245"/>
       </Position9>
       <Position10>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1114" Column="57" TopLine="1109"/>
+        <Caret Line="1190" Column="17" TopLine="1169"/>
       </Position10>
       <Position11>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="615" Column="42" TopLine="594"/>
+        <Caret Line="79" Column="7" TopLine="63"/>
       </Position11>
       <Position12>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1545" Column="24" TopLine="1551"/>
+        <Caret Line="81" Column="44" TopLine="63"/>
       </Position12>
       <Position13>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1627" TopLine="1552"/>
+        <Caret Line="185" TopLine="175"/>
       </Position13>
       <Position14>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="744" TopLine="728"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="858" Column="19" TopLine="805"/>
       </Position14>
       <Position15>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="745" TopLine="728"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="864" Column="3" TopLine="843"/>
       </Position15>
       <Position16>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="746" TopLine="728"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="863" TopLine="841"/>
       </Position16>
       <Position17>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="794" TopLine="768"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="1193" Column="34" TopLine="1179"/>
       </Position17>
       <Position18>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="796" TopLine="772"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="1525" Column="34" TopLine="1393"/>
       </Position18>
       <Position19>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="797" TopLine="773"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="1193" Column="28" TopLine="1179"/>
       </Position19>
       <Position20>
-        <Filename Value="C:\lazarus\components\synedit\syncompletion.pas"/>
-        <Caret Line="803" TopLine="788"/>
+        <Filename Value="..\SynFacilCompletion.pas"/>
+        <Caret Line="1206" Column="30" TopLine="1191"/>
       </Position20>
       <Position21>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1642" Column="6" TopLine="1510"/>
+        <Caret Line="1208" Column="22" TopLine="1187"/>
       </Position21>
       <Position22>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1167" Column="52" TopLine="1140"/>
+        <Caret Line="185" TopLine="170"/>
       </Position22>
       <Position23>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="280" TopLine="276"/>
+        <Caret Line="879" Column="29" TopLine="857"/>
       </Position23>
       <Position24>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="292" Column="16" TopLine="275"/>
+        <Caret Line="1207" Column="34" TopLine="1192"/>
       </Position24>
       <Position25>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1168" Column="57" TopLine="1152"/>
+        <Caret Line="614" Column="3" TopLine="599"/>
       </Position25>
       <Position26>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="292" Column="3" TopLine="276"/>
+        <Caret Line="146" Column="15" TopLine="131"/>
       </Position26>
       <Position27>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1155" Column="7" TopLine="1158"/>
+        <Caret Line="615" Column="13" TopLine="590"/>
       </Position27>
       <Position28>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1164" Column="9" TopLine="1163"/>
+        <Caret Line="1174" Column="9" TopLine="1130"/>
       </Position28>
       <Position29>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1176" Column="17" TopLine="1158"/>
+        <Caret Line="1127" Column="19" TopLine="1030"/>
       </Position29>
       <Position30>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1169" Column="7" TopLine="1153"/>
+        <Caret Line="620" Column="9" TopLine="607"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>
