@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <Language name="Object Pascal" ext="pas" ColorBlock="Block">
   <Completion>
-    <Include Attribute="Keyword"></Include>
-	<list>
   "begin&#xD;  &#xD;end;"
   "if expresion then begin&#xD;  &#xD;end;"
   "if expresion then begin&#xD;  &#xD;end else begin&#xD;end;"
   "while expresion do begin&#xD;  &#xD;end;"
-  </list>
+    <Include Attribute="Keyword"></Include>
   </Completion>
   <Attribute Name="Keyword" Style="b"> </Attribute>
   <Identifiers CharsStart= "A..Za..z_" Content = "A..Za..z0..9_"> 
