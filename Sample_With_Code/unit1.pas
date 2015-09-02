@@ -43,7 +43,6 @@ var
   it: TMenuItem;
   fResult: LongInt;
   fFile: TSearchRec;
-  defPat: TFaOpenPattern;
 begin
   //configure highlighters
   hlt1 := TSynFacilComplet.Create(self);  //my highlighter
@@ -63,10 +62,9 @@ begin
   //define completion
   hlt1.CompletionOn:=true;
   hlt1.OpenOnKeyUp:=true;
-  defPat := hlt1.AddOpenPattern('Identifier', '', fil_LastTokPart);
-  defPat.AddItems('begin end var const type', nil);
-  defPat.AddItems('case class if else exit unit', nil);
-  defPat.AddItems('for function procedure property', nil);
+  hlt1.AddCompItemL('begin end var const type', nil);
+  hlt1.AddCompItemL('case class if else exit unit', nil);
+  hlt1.AddCompItemL('for function procedure property', nil);
 
   hlt1.SelectEditor(ed1);
   ed1.OnUTF8KeyPress:=@ed1UTF8KeyPress;

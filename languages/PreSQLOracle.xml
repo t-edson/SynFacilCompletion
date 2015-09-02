@@ -111,7 +111,7 @@
 "%ROWTYPE"
 "%TYPE"
 	</List>
-    <List Name="Alter">
+    <List Name="Alter" AfterIdentif="Alter">
 "SESSION SET"
 "TABLE "
 "TABLE tabla ADD columna tipo;"
@@ -123,14 +123,14 @@
 "INDEX índice STORAGE (PCTINCREASE 50);"
 "INDEX VISIBLE;"
 	</List>
-    <List Name="From">
+	<List Name="from" AfterIdentif="from">
     DUAL
     USER_TABLES
     USER_VIEWS
     ALL_TABLES
     ALL_VIEWS
 	</List>
-    <List Name="Set">
+	<List Name="Set" AfterIdentif="Set">
     APPINFO
     ARRAYSIZE
     AUTOCOMMIT
@@ -207,21 +207,6 @@
     VERIFY
     WRAP
 	</List>
-    <OpenOn AfterPattern="'Alter',space" FilterBy="None" Action="Insert">
-	  <Include list="Alter"/>
-	</OpenOn>
-    <OpenOn AfterPattern="'Alter',space,identifier">
-	  <Include list="Alter"/>
-	</OpenOn>
-	<OpenOn AfterPattern="'from',space" FilterBy="None" Action="Insert">
-	  <Include list="From"/>
-	</OpenOn>
-	<OpenOn AfterPattern="'from',space,identifier">
-	  <Include list="From"/>
-	</OpenOn>
-	<OpenOn AfterPattern="'Set',space" FilterBy="None" Action="Insert">
-	  <Include list="Set"/>
-	</OpenOn>
   </Completion>
 
   <Attribute Name="Keyword" Bold="true"></Attribute>
