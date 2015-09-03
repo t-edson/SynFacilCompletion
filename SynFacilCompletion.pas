@@ -2,10 +2,11 @@
 SynFacilCompletion 1.11
 ======================
 Por Tito Hinostroza 19/12/2014
-* Se crea la rutina ExtractCompletItem(), para poder separara los campos de un ítem para
+* Se crea la rutina ExtractCompletItem(), para poder separar los campos de un ítem para
 la lista de completado.
 * Se mejoró el manejo del teclado y la verificación de las condiciones para cerrar la
 ventana de completado.
+* Se realizó la verificación de la librería en diferentes condiciones de trabajo.
 * Se cambia el nombre de "patrón de apertura" a "evento de apertura", tanto en la documentación
 como en el código (aún parcialmente).
 * Se agrega un valor por defecto a "AfterPattern".
@@ -16,19 +17,19 @@ Pendientes:
 en lugar de copiar sus ítems.
 * Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificsr
 la deifnición clásica.
-* Incluir el manejo de las ventanas de tipo "Tip", como ayuda para lso parámetros de las
+* Incluir el manejo de las ventanas de tipo "Tip", como ayuda para los parámetros de las
 funciones.
-* Hacer que la ventaan de completado haga seguimiento del cursor, cuando este retrocede
+* Hacer que la ventana de completado haga seguimiento del cursor, cuando este retrocede
 mucho en un identificador.
 * Incluir un método en TFaOpenPattern, para extraer elementos de una cadena y así
 simplificar AddOpenPattern().
 * Incluir íconos en la visualización de la ventana de completado.
 
 
-En esta versión, se corrigen algunos errores de la versión 1.1 y se agreganm pequeñas
+En esta versión, se corrigen algunos errores de la versión 1.1 y se agregan pequeñas
 funcionalidades pendientes. Además se ha realizado una verificación más detallada de
-algunos casos de uso y se ha reordenado el código. la docuemntación ha sido ordenada
-y se cambaia el nombre de Patrón de apertura para hablar ahora de evento de apertura.
+algunos casos de uso y se ha reordenado el código. la documentación ha sido ordenada
+y se cambia el nombre de Patrón de apertura para hablar ahora de evento de apertura.
 
 Descripción
 ============

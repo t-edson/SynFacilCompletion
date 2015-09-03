@@ -1,5 +1,5 @@
-SynFacilCompletion 1.1b
-======================
+SynFacilCompletion 1.11
+=======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
 
@@ -62,7 +62,7 @@ end;
 
 For to close the window of the completion menu, we must to call to the method:  CloseCompletionWindow().
 
-In the XML file, we must include the list of word for to use in the completion menu. This list must be included in the label COMPLETION. 
+In the XML file, we must include the list of word to use in the completion menu. This list must be included in the label COMPLETION. 
 
 ## Defining the list of words for completion
 
