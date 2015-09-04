@@ -9,6 +9,8 @@ ventana de completado.
 * Se realizó la verificación de la librería en diferentes condiciones de trabajo.
 * Se cambia el nombre de "patrón de apertura" a "evento de apertura", tanto en la documentación
 como en el código (aún parcialmente).
+* La clase TFaOpenPattern pasa a ser TFaOpenEvent y el evento AddOpenPattern() pasa a ser
+AddOpenEvent() y ya no incluye el último parámetro.
 * Se agrega un valor por defecto a "AfterPattern".
 
 Pendientes:
@@ -76,6 +78,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
+//{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics,
@@ -204,7 +207,7 @@ type
   end;
 
   //Lista de patrones
-  TFaOpenPatterns = specialize TFPGObjectList<TFaOpenEvent>;
+  TFaOpenEvents = specialize TFPGObjectList<TFaOpenEvent>;
 
   //Objeto lista para completado
   { TFaCompletionList }
@@ -259,7 +262,7 @@ type
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
   private  //manejo de patrones de apertura
-    OpenPatterns: TFaOpenPatterns; //lista de patrones de apertura
+    OpenPatterns: TFaOpenEvents; //lista de patrones de apertura
     CurOpenPat  : TFaOpenEvent;    //evento de apertura que se aplica en el momento
     CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     function FindOpenEventMatching: TFaOpenEvent;
@@ -537,13 +540,14 @@ begin
   end;
   //captura "curBlock"
   curBlock := tok0^.curBlk;  //devuelve bloque
-  //información de depuración
+  {$IFDEF Verbose}
   DbgOut('  LookAround:(');
   if tok_3<>nil then DbgOut(tok_3^.TokTyp.Name+',');
   if tok_2<>nil then DbgOut(tok_2^.TokTyp.Name+',');
   if tok_1<>nil then DbgOut(tok_1^.TokTyp.Name+',');
   if tok0<>nil then DbgOut(tok0^.TokTyp.Name);
   debugln(')');
+  {$ENDIF}
 end;
 //Las siguientes funciones, deben llamarse después de lamar a LookAround()
 function TFaCursorEnviron.HaveLastTok: boolean; inline;
@@ -761,10 +765,8 @@ begin
   case Filter of
   fil_None: begin  //agrega todos
       for i:=0 to high(Avails) do begin  //agrega sus ítems
-  //      debugln(' agregando:'+Avails[i]^.text);
         lst.Add(Avails[i]^.text);
       end;
-      debugln('>>encontrados:'+IntToStr(high(Avails)+1));
     end;
   fil_LastTok: begin  //último token
       if env.HaveLastTok then
@@ -832,7 +834,6 @@ begin
   fil_LastTokPart: begin    //se usará el último token
     if curEnv.HaveLastTok then begin
       //hay un token anterior
-//      debugln(' lastTok:'+curEnv.LastTok);
       startX := curEnv.tok_1^.posIni;   //inicio del token
       FilterByChar(curEnv.LastTok[1]);   //primer caracter como filtro (peor caso)
     end;
@@ -841,7 +842,6 @@ begin
   fil_LastIdentPart: begin    //se usará el último identif.
     if curEnv.HaveLastIdent then begin
       //hay un token anterior
-//      debugln(' LastIden:'+curEnv.LastIdent);
       startX := curEnv.StartIdentif;   //es fácil sacra el inicio del identificador
       FilterByChar(curEnv.LastIdentPart[1]);  //primer caracter como filtro (peor caso)
     end;
@@ -850,7 +850,9 @@ begin
     SetLength(Avails, 0);
     startX := curEnv.CurX;
   end;
-debugln('  Cargados: '+IntToStr(High(Avails)+1)+ ' ítems.')
+  {$IFDEF Verbose}
+  debugln('  Cargados: '+IntToStr(High(Avails)+1)+ ' ítems.')
+  {$ENDIF}
 end;
 function TFaOpenEvent.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
                 CaseSens: boolean): boolean;
@@ -931,8 +933,9 @@ function TFaOpenEvent.MatchPattern(const curEnv: TFaCursorEnviron): boolean;
 begin
   Result := MatchPatternBefore(curEnv) and
             MatchPatternAfter(curEnv) and ItemInBlock;
-
+  {$IFDEF Verbose}
   if Result then debugln(' -> Aplicable Pat:'+ name);
+  {$ENDIF}
 end;
 procedure TFaOpenEvent.AddItem(txt: string);
 {Agrega un ítem al evento de apertura. Versión simplificada}
@@ -1483,17 +1486,17 @@ function TSynFacilComplet.CheckForClose: boolean;
 {Verifica si se dan las condiciones como para cerrar la ventana de completado, y si se da
 el caso, la cierra y devuelve TRUE.}
 var
-  opPat: TFaOpenEvent;
+  opEve: TFaOpenEvent;
 begin
   curEnv.LookAround(ed, CaseSensComp);  //para actualizar el nuevo estado
-  opPat := FindOpenEventMatching;    //Busca evento de apertura que aplica
-  if opPat = nil then begin
+  opEve := FindOpenEventMatching;    //Busca evento de apertura que aplica
+  if opEve = nil then begin
     MenuComplet.Deactivate;
     CurOpenPat := nil;  //como se cierra ya no hay evento activo
     exit(true);  //ninguno aplica
   end;
   //hay un aptrón que aplica
-  if opPat=CurOpenPat then begin
+  if opEve=CurOpenPat then begin
     //Es el mismo
     exit(false);
   end else begin
@@ -1501,7 +1504,7 @@ begin
     {Aquí se puede decidir cerrar la ventana, porque aplica otro patrón, pero yo prefiero
      el comportamiento en el que se aplica direcatamente el nuevo patrón, sin necesidad de
      esperar a pulsar otra tecla.}
-    CurOpenPat := opPat;   //actualiza referencia
+    CurOpenPat := opEve;   //actualiza referencia
     CurOpenPat.LoadItems(curEnv);  //carga ítems
     exit(false);
   end;
@@ -1554,81 +1557,81 @@ function TSynFacilComplet.AddOpenEvent(AfterPattern, BeforePattern: string;
     end;
   end;
 var
-  opPat: TFaOpenEvent;
+  opEve: TFaOpenEvent;
   elem : String;
   nelem: Integer;
   success: boolean;
   i: Integer;
 begin
-  opPat := TFaOpenEvent.Create(self);
+  opEve := TFaOpenEvent.Create(self);
   ///////analiza AfterPattern
   AfterPattern := trim(AfterPattern);
   if AfterPattern='' then begin
     //no se especifica
-    opPat.elem[-3].patKind := pak_none;
-    opPat.elem[-2].patKind := pak_none;
-    opPat.elem[-1].patKind := pak_none;
-    opPat.nBef:=0;  //no hay elementos válidos
+    opEve.elem[-3].patKind := pak_none;
+    opEve.elem[-2].patKind := pak_none;
+    opEve.elem[-1].patKind := pak_none;
+    opEve.nBef:=0;  //no hay elementos válidos
   end else begin
     //Caso común
     //extrae y guarda los elementos
-    elem := opPat.ExtractElem(AfterPattern);
+    elem := opEve.ExtractElem(AfterPattern);
     nelem := 0;  //contedor
     while (elem<>'#') and (elem<>'') and (nelem<=3) do begin
-      AddElement(elem, opPat.elem[nelem-3], success);
+      AddElement(elem, opEve.elem[nelem-3], success);
       if not success then begin
-        opPat.Destroy;  //no lo agregó
+        opEve.Destroy;  //no lo agregó
         raise ESynFacilSyn.Create(ERR_PAR_BEF_PATT);
       end;
-      elem := opPat.ExtractElem(AfterPattern);
+      elem := opEve.ExtractElem(AfterPattern);
       inc(nelem);
     end;
     //verifica
     if elem = '#' then begin
-      opPat.Destroy;  //no lo agregó
+      opEve.Destroy;  //no lo agregó
       raise ESynFacilSyn.Create(ERR_PAR_BEF_PATT);
     end;
     if nelem>3 then begin
-      opPat.Destroy;  //no lo agregó
+      opEve.Destroy;  //no lo agregó
       raise ESynFacilSyn.Create(ERR_PAR_BEF_PATT);
     end;
     //alinea elementos encontrados
-    opPat.nBef:=3;   //valor asumido, se ajustará al valor real
+    opEve.nBef:=3;   //valor asumido, se ajustará al valor real
     for i:=1 to 3-nelem do begin
-      opPat.ShiftPatterns;
+      opEve.ShiftPatterns;
     end;
   end;
   ///////analiza BeforePattern
   BeforePattern := trim(BeforePattern);
   if BeforePattern='' then begin
     //no se especifica
-    opPat.elem[0].patKind := pak_none;
-    opPat.nAft:=0;  //no hay
+    opEve.elem[0].patKind := pak_none;
+    opEve.nAft:=0;  //no hay
   end else begin
     //hay un patrón después
-    elem := opPat.ExtractElem(BeforePattern);
+    elem := opEve.ExtractElem(BeforePattern);
     if elem = '#' then begin
-      opPat.Destroy;  //no lo agregó
+      opEve.Destroy;  //no lo agregó
       raise ESynFacilSyn.Create(ERR_PAR_AFT_PATT);
     end;
     if BeforePattern<>'' then begin  //no deberái quedar nada
-      opPat.Destroy;  //no lo agregó
+      opEve.Destroy;  //no lo agregó
       raise ESynFacilSyn.Create(ERR_PAR_AFT_PATT);
     end;
-    AddElement(elem, opPat.elem[0], success);
+    AddElement(elem, opEve.elem[0], success);
     if not success then begin
-      opPat.Destroy;  //no lo agregó
+      opEve.Destroy;  //no lo agregó
       raise ESynFacilSyn.Create(ERR_PAR_AFT_PATT);
     end;
-    opPat.nAft:=1;  //hay uno
+    opEve.nAft:=1;  //hay uno
   end;
-  setlength(opPat.Items, 0);  //inicia tabla de ítems
+  setlength(opEve.Items, 0);  //inicia tabla de ítems
   //Hay propiedades que no se inician aquí como el nombre
-  opPat.filter := filter;     //fija filtro
-  opPat.block := nil;
-  opPat.Action := pac_Default;  //acción por defecto
-  OpenPatterns.Add(opPat);   //agrega
-  Result := opPat;  //devuelve referencia
+  opEve.filter := filter;     //fija filtro
+  opEve.block := nil;
+  opEve.Action := pac_Default;  //acción por defecto
+  OpenPatterns.Add(opEve);   //agrega
+  Result := opEve;  //devuelve referencia
 end;
 function TSynFacilComplet.AddComplList(lstName: string): TFaCompletionList;
 var
@@ -1666,11 +1669,11 @@ function TSynFacilComplet.FindOpenEventMatching: TFaOpenEvent;
 {Devuelve el priumer evento que coincide con el entorno actual "curEnv". Si ninguno coincide,
 devuelve NIL.}
 var
-  opPat: TFaOpenEvent;
+  opEve: TFaOpenEvent;
 begin
-  for opPat in OpenPatterns do begin
-    if opPat.MatchPattern(curEnv) then begin
-      Result := opPat;   //devuelve referencia
+  for opEve in OpenPatterns do begin
+    if opEve.MatchPattern(curEnv) then begin
+      Result := opEve;   //devuelve referencia
       exit;
     end;
   end;
@@ -1682,9 +1685,8 @@ procedure TSynFacilComplet.OnExecute(Sender: TObject);
 //actual del cursor y de la configuración del archivo XML.
 //Luego llena el menú contextual con los ítems filtrados de acuerdo a la posición actual.
 var
-  opPat: TFaOpenEvent;
+  opEve: TFaOpenEvent;
 begin
-debugln('OnExecute()');
   MenuComplet.ItemList.Clear;   //inicia menú
   //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
   if MenuComplet.CurrentString='<KeyUp>' then begin
@@ -1701,11 +1703,11 @@ debugln('OnExecute()');
   //Prepara para llenar la lista de completado
   curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
   CurOpenPat := nil;
-  opPat := FindOpenEventMatching;    //Busca evento de apertura que aplica
-  if opPat<>nil then begin
+  opEve := FindOpenEventMatching;    //Busca evento de apertura que aplica
+  if opEve<>nil then begin
     //Se cumple el evento en la posición actual del cursor
-    opPat.LoadItems(curEnv);   //carga los ítems con los que trabajará.
-    CurOpenPat := opPat;   //guarda referencia
+    opEve.LoadItems(curEnv);   //carga los ítems con los que trabajará.
+    CurOpenPat := opEve;   //guarda referencia
   end;
   FillCompletMenuFiltered;  //hace el primer filtrado
 
@@ -1839,8 +1841,7 @@ begin
   ed.CommandProcessor(ecChar, UTF8Key, nil);
   UTF8Key := '';  //limpiamos para que ya no lo procese SynCompletion
   //ahora ya tenemos al editor cambiado
-//debugln('Form.OnKeyPress:'+xxx);
-//Las posibles opciones ya se deben haber llenado. Aquí solo filtramos.
+  //Las posibles opciones ya se deben haber llenado. Aquí solo filtramos.
   if CheckForClose then exit;
   FillCompletMenuFiltered;
 end;
@@ -1857,7 +1858,9 @@ procedure TSynFacilComplet.KeyUp(Sender: TObject; var Key: Word;
  el estado final del editor
  Este evento solo se ejecutará una vez antes de abrir la ventana de autocompletado}
 begin
-debugln('--KeyUp:' + IntToStr(key));
+  {$IFDEF Verbose}
+  debugln('--KeyUp:' + IntToStr(key));
+  {$ENDIF}
   if not CompletionOn then exit;
   if not OpenOnKeyUp then exit;
   if not SearchOnKeyUp then begin
@@ -1889,7 +1892,6 @@ procedure TSynFacilComplet.FillCompletMenuFiltered;
 //Llena el menú de completado a partir de "AvailItems", filtrando solo las
 //palabras que coincidan con "str"
 begin
-//debugln('  FilCompl:'+str);
   //Genera la lista que coincide
   { Este proceso puede ser lento si se actualizan muchas opciones en la lista }
   MenuComplet.ItemList.Clear;  {Limpia todo aquí porque este método es llamado desde distintos
@@ -1919,7 +1921,7 @@ constructor TSynFacilComplet.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   curEnv   := TFaCursorEnviron.Create(self);
-  OpenPatterns := TFaOpenPatterns.Create(True);
+  OpenPatterns := TFaOpenEvents.Create(True);
   CompletLists := TFaCompletionLists.Create(true);
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto

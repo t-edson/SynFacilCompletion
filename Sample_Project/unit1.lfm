@@ -1,19 +1,18 @@
 object Form1: TForm1
-  Left = 462
+  Left = 399
   Height = 476
-  Top = 93
+  Top = 107
   Width = 616
   Caption = 'Form1'
-  ClientHeight = 456
+  ClientHeight = 476
   ClientWidth = 616
-  Menu = MainMenu1
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   LCLVersion = '1.4.2.0'
   inline ed1: TSynEdit
     Left = 0
-    Height = 456
+    Height = 476
     Top = 0
     Width = 616
     Align = alClient
@@ -510,20 +509,5 @@ object Form1: TForm1
         MouseActionsCollapsed = <>
       end
     end
-  end
-  object MainMenu1: TMainMenu
-    left = 40
-    top = 16
-    object MenuItem1: TMenuItem
-      Caption = '&Open...'
-      OnClick = MenuItem1Click
-    end
-    object mnSyntax: TMenuItem
-      Caption = '&Syntax'
-    end
-  end
-  object OpenDialog1: TOpenDialog
-    left = 112
-    top = 16
   end
 end
