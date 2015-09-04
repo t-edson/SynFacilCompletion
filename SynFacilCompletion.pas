@@ -1,7 +1,7 @@
 {
 SynFacilCompletion 1.11
 ======================
-Por Tito Hinostroza 19/12/2014
+Por Tito Hinostroza 31/08/2015
 * Se crea la rutina ExtractCompletItem(), para poder separar los campos de un ítem para
 la lista de completado.
 * Se mejoró el manejo del teclado y la verificación de las condiciones para cerrar la
