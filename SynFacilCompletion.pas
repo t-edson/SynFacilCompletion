@@ -149,8 +149,9 @@ type
    No son todas las secuencias de escape, sino solo las que necesitan procesarse
    independientemente para ejecutar correctamente la acción de reemplazo.}
   TFaCompletSeqType = (
-    csqNone,   //no es secuencia de escape
-    csqCurPos  //secuencia que indica posición del cursor
+    csqNone,    //no es secuencia de escape
+    csqCurPos,  //secuencia que indica posición del cursor
+    csqTabSpa   //tabulación al nivel del primer caracter de línea anterior
   );
 
   //Entorno del cursor
@@ -460,6 +461,7 @@ codificados. El formato de la codificiacón es:
   begin
     Result := StringReplace(s, '\n', ' ', [rfReplaceAll]);
     Result := StringReplace(Result, '\t', ' ', [rfReplaceAll]);
+    Result := StringReplace(Result, '\u', ' ', [rfReplaceAll]);
     Result := StringReplace(Result, '\\', '\', [rfReplaceAll]);
     Result := StringReplace(Result, '\|', '|', [rfReplaceAll]);
     Result := StringReplace(Result, '\_', '', [rfReplaceAll]);
@@ -658,30 +660,80 @@ function TFaCursorEnviron.ExtractStaticText(var ReplaceSeq: string;
     Result := StringReplace(Result, '\|', '|', [rfReplaceAll]);
     Result := StringReplace(Result, '\\', '\', [rfReplaceAll]);
   end;
+  function FirstPos(substrs: array of string; str: string; var found: string): integer;
+  {Busca la ocurrencia de cualquiera de las cadenas dadas en "substrs". Devuelve el índice
+   a la primera encontrada. Si no enceuntra ninguna, devuelve 0.}
+  var
+    i, p: Integer;
+    limit: Integer;
+    lin: string;
+  begin
+    Result := 0;   //valor inicial
+    found := '';
+    limit := length(str);
+    for i:=0 to high(substrs) do begin
+      lin := copy(str, 1, limit);
+      p := Pos(substrs[i], lin);
+      if p<>0 then begin
+        //encontró uno, compara
+        if p<limit then begin
+          limit := p;  //restringe límite para la siguiente búsqueda
+          found := substrs[i];  //lo que enontró
+          Result := p;
+        end;
+      end;
+    end;
+  end;
 var
-  pc: SizeInt;
+  p: Integer;
+  hay: string;
 begin
-  //Por ahora, solo la secuencia de posición de cursor, se detecta.
-  pc := Pos('\_',ReplaceSeq);
-//  stab1 := Pos('\u',ReplaceSeq);  //tabulación al primer caracter no balnco de la línea superior no blanca
-  if pc<>0 then begin
-    //hay una secuencia de posicionamiento de cursor
-    Result := ReplaceEscape(copy(ReplaceSeq,1,pc-1));
-    seq := csqCurPos;   //Indica secuencia de posicionamiento de cursor
-    ReplaceSeq := copy(ReplaceSeq, pc+2, length(ReplaceSeq));
-  end else begin
-    //No hay posicionamiento de cursor
+  //Detcta las secuencias de posición de cursor, o tabulación '\u'.
+  p := FirstPos(['\_','\u'], ReplaceSeq, hay);  //tabulación al primer caracter no blanco de la línea superior no blanca
+  if hay = '' then begin
+    //No hay secuecnia especial
     Result := ReplaceEscape(ReplaceSeq);
     seq := csqNone;   //no se ecnontró secuencia de ruptura
     ReplaceSeq := '';
+  end else if hay = '\_' then begin
+    //primero está la secuencia de cursor
+    Result := ReplaceEscape(copy(ReplaceSeq,1,p-1));
+    seq := csqCurPos;   //Indica secuencia de posicionamiento de cursor
+    ReplaceSeq := copy(ReplaceSeq, p+2, length(ReplaceSeq));
+  end else if hay = '\u' then begin
+    //primero está la secuencia de tabulación
+    Result := ReplaceEscape(copy(ReplaceSeq,1,p-1));
+    seq := csqTabSpa;   //Indica secuencia
+    ReplaceSeq := copy(ReplaceSeq, p+2, length(ReplaceSeq));
   end;
 end;
 procedure TFaCursorEnviron.InsertSequence(ed: TSynEdit; Pos1, Pos2: TPoint; ReplaceSeq: string);
 {Inserta una secuencia de reemplazo en el bloque definido por P1 y P2}
+  function FindNoWhiteLineUp(ed: TSynEdit): string;
+  {Busca hacia arriba, una línea con caracteres diferentes de espacio y que ocupen una posición
+   más a la derecha de la posición actual del cursor. La búsqueda se hace a partir de la
+   posición actual del cursor.  Si no encuentra, devuelve línea en blanco.}
+  var
+    x,y: Integer;
+    lin: String;
+  begin
+    y := ed.CaretY-1;  //desde la línea anterior
+    x := ed.CaretX;
+    while y>0 do begin
+      lin := ed.Lines[y-1];
+      if trim(copy(lin,x, length(lin)))<>'' then
+        exit(ed.Lines[y-1]);
+      dec(y);
+    end;
+    //no encontró
+    exit('');
+  end;
 var
   toRepl: String;
   cursorPos: TPoint;
   seq: TFaCompletSeqType;
+  linNoWhite: String;
+  i: Integer;
 begin
   ed.BeginUndoBlock;
   ed.TextBetweenPointsEx[Pos1,Pos2, scamEnd] := ''; //elimina el contenido y deja cursor al final
@@ -702,6 +754,27 @@ begin
       Pos1 := ed.CaretXY;
       ed.TextBetweenPointsEx[Pos1,Pos1, scamEnd] := toRepl;
       cursorPos := ed.CaretXY;
+    end;
+    csqTabSpa: begin
+      //hay comando de tabulación inteligente
+      Pos1 := ed.CaretXY;
+      //inserta fragmento
+      ed.TextBetweenPointsEx[Pos1,Pos1, scamEnd] := toRepl;
+      //calcula espaciado
+      linNoWhite := FindNoWhiteLineUp(ed);
+      if linNoWhite<>'' then begin
+        //hay línea sin blancos, busca posición de caracter no blanco
+        for i:=ed.CaretX to length(linNoWhite) do begin
+          //La definición de blanco #1..#32, corresponde al resaltador
+          if not (linNoWhite[i] in [#1..#32]) then begin
+             //encontró.
+             ed.CaretX:=i;
+             break; //sale del for
+          end;
+        end;
+        {Si llega aquí, es que no encontró el caracter buscado, lo que indicaria que el
+         algoritmo de búsqueda de FindNoWhiteLineUp() no es consistente con este código.}
+      end;
     end;
     end;
   end;
