@@ -32,7 +32,7 @@ var
 implementation
 {$R *.lfm}
 //crea espacio para almacenar token
-var hlt1 : TSynFacilComplet;
+var hlt : TSynFacilComplet;
 
 { TForm1 }
 
@@ -41,29 +41,29 @@ var
   opEve: TFaOpenEvent;
 begin
   //configure highlighters
-  hlt1 := TSynFacilComplet.Create(self);  //my highlighter
+  hlt := TSynFacilComplet.Create(self);  //my highlighter
   //define syntax
-  hlt1.ClearSpecials;               //para empezar a definir tokens
-  hlt1.CreateAttributes;            //Limpia atributos
-  hlt1.ClearMethodTables;           //limpìa tabla de métodos
-  hlt1.DefTokIdentif('[$A-Za-z_]', '[A-Za-z0-9_]*');
-  hlt1.DefTokContent('[0-9]', '[0..9xa-fXA-F]', hlt1.tkNumber);
-  hlt1.AddIdentSpecList('begin end var const type', hlt1.tkKeyword);
-  hlt1.AddIdentSpecList('case class if else exit unit', hlt1.tkKeyword);
-  hlt1.AddIdentSpecList('for function procedure property', hlt1.tkKeyword);
-  hlt1.DefTokDelim('''','''', hlt1.tkString);
-  hlt1.DefTokDelim('//','', hlt1.tkComment);
-  hlt1.DefTokDelim('{','}', hlt1.tkComment, tdMulLin);
-  hlt1.Rebuild;  //reconstruye
+  hlt.ClearSpecials;               //para empezar a definir tokens
+  hlt.CreateAttributes;            //Limpia atributos
+  hlt.ClearMethodTables;           //limpìa tabla de métodos
+  hlt.DefTokIdentif('[$A-Za-z_]', '[A-Za-z0-9_]*');
+  hlt.DefTokContent('[0-9]', '[0..9xa-fXA-F]', hlt.tkNumber);
+  hlt.AddIdentSpecList('begin end var const type', hlt.tkKeyword);
+  hlt.AddIdentSpecList('case class if else exit unit', hlt.tkKeyword);
+  hlt.AddIdentSpecList('for function procedure property', hlt.tkKeyword);
+  hlt.DefTokDelim('''','''', hlt.tkString);
+  hlt.DefTokDelim('//','', hlt.tkComment);
+  hlt.DefTokDelim('{','}', hlt.tkComment, tdMulLin);
+  hlt.Rebuild;  //reconstruye
   //define completion
-  hlt1.CompletionOn:=true;
-  hlt1.OpenOnKeyUp:=true;
-  opEve := hlt1.AddOpenEvent('Identifier', '', fil_None);
-  opEve.AddItems('begin end var const type', nil);
-  opEve.AddItems('case class if else exit unit', nil);
-  opEve.AddItems('for function procedure property', nil);
+  hlt.CompletionOn:=true;
+  hlt.OpenOnKeyUp:=true;
+  opEve := hlt.AddOpenEvent('Identifier', '', fil_LastTokPart);
+  opEve.AddItems('begin end var const type', -1);
+  opEve.AddItems('case class if else exit unit', -1);
+  opEve.AddItems('for function procedure property', -1);
 
-  hlt1.SelectEditor(ed1);
+  hlt.SelectEditor(ed1);
   ed1.OnUTF8KeyPress:=@ed1UTF8KeyPress;
   ed1.Lines.LoadFromFile('ObjectPascal_sample.txt');
 
@@ -77,18 +77,18 @@ end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  hlt1.UnSelectEditor;
-  hlt1.Free;
+  hlt.UnSelectEditor;
+  hlt.Free;
 end;
 
 procedure TForm1.ed1KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-  hlt1.KeyUp(Sender, Key, Shift);
+  hlt.KeyUp(Sender, Key, Shift);
 end;
 
 procedure TForm1.ed1UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
 begin
-  hlt1.UTF8KeyPress(Sender, UTF8Key);
+  hlt.UTF8KeyPress(Sender, UTF8Key);
 end;
 
 end.
