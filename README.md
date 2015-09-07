@@ -139,6 +139,7 @@ Having lists in this way, make easy to classify the total words for completion, 
 
 When defining a list of items, it's possible to define a different word for completion, so the replacing would be done using another word instead of the item shown in the menu.
 
+```
   <Completion>
     <OpenOn >
        foo|foo_to_show
