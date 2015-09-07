@@ -153,7 +153,7 @@ When defining a list of items, it's possible to define a different word for comp
 
 The char "|" is a separator of fields. The structure of fields for the items is:
 
-<Caption>|<Text for replacing>|<Description>
+\<Caption>|<Text for replacing>|<Description>
 
 The Description field is not implemented in this version.
 
