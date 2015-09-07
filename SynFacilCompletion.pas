@@ -238,7 +238,7 @@ type
     procedure AddAfterElement(var aftPat: string; var ErrStr: string);
     //manejo de ítems
     procedure LoadItems(const curEnv: TFaCursorEnviron);
-    procedure AddItem(txt: string);
+    procedure AddItem(txt: string; idxIcon: integer);
     procedure AddItems(lst: TStringList; idxIcon: integer);
     procedure AddItems(list: string; idxIcon: integer);
     procedure AddList(Alist: TFaCompletionList; OnlyRef: boolean);
@@ -1133,13 +1133,14 @@ begin
   if Result then debugln(' -> Aplicable Pat:'+ name);
   {$ENDIF}
 end;
-procedure TFaOpenEvent.AddItem(txt: string);
+procedure TFaOpenEvent.AddItem(txt: string; idxIcon: integer);
 {Agrega un ítem al evento de apertura. Versión simplificada}
 var
   it: TFaCompletItem;
 begin
   it := TFaCompletItem.Create;
   it.Caption := txt;
+  it.idxIcon:=idxIcon;
   Items.Add(it);
 end;
 procedure TFaOpenEvent.AddItems(lst: TStringList; idxIcon: integer);
@@ -1337,6 +1338,8 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
     lst: TFaCompletionList;
     tIncAttr, tIncList: TFaXMLatrib;
     tipTok: TSynHighlighterAttributes;
+    tIncIcnI: TFaXMLatrib;
+    IncIcnI: Integer;
   begin
     listIden := nodo.TextContent;
     if listIden<>'' then begin
@@ -1350,15 +1353,17 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
         //lee parámetros
         tIncAttr := ReadXMLParam(nodo2,'Attribute');
         tIncList := ReadXMLParam(nodo2,'List');
-        CheckXMLParams(nodo2, 'Attribute List');  //puede generar excepción
+        tIncIcnI := ReadXMLParam(nodo2,'IconIndex');
+        CheckXMLParams(nodo2, 'Attribute List IconIndex');  //puede generar excepción
         if tIncAttr.hay then begin
           //se pide agregar la lista de identificadores de un atributo en especial
           if IsAttributeName(tIncAttr.val)  then begin
             tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+            if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
             //busca los identificadores para agregarlos
             for j:= 0 to high(SpecIdentifiers) do begin
               if SpecIdentifiers[j].tTok = tipTok then begin
-                opEve.AddItem(SpecIdentifiers[j].orig); {Agrega a lista por defecto.}
+                opEve.AddItem(SpecIdentifiers[j].orig, IncIcnI); {Agrega a lista por defecto.}
               end;
             end;
           end else begin  //atributo no existe
@@ -1468,6 +1473,8 @@ var
   defPat: TFaOpenEvent;
   cmpList: TFaCompletionList;
   idxIcon: integer;
+  tIncIcnI: TFaXMLatrib;
+  IncIcnI: Integer;
 begin
   hayOpen := false;  //inicia bandera
   //crea evento de apertura por defecto
@@ -1479,15 +1486,17 @@ begin
     if UpCAse(nodo2.NodeName)='INCLUDE' then begin  //incluye lista de palabras por atributo
       //lee parámetros
       tIncAttr := ReadXMLParam(nodo2,'Attribute');
-      CheckXMLParams(nodo2, 'Attribute');  //puede generar excepción
+      tIncIcnI := ReadXMLParam(nodo2,'IconIndex');
+      CheckXMLParams(nodo2, 'Attribute IconIndex');  //puede generar excepción
       if tIncAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
         if IsAttributeName(tIncAttr.val)  then begin
           tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+          if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
           //busca los identificadores para agregarlos
           for j:= 0 to high(SpecIdentifiers) do begin
             if SpecIdentifiers[j].tTok = tipTok then begin
-              defPat.AddItem(SpecIdentifiers[j].orig); {Agrega a lista por defecto.}
+              defPat.AddItem(SpecIdentifiers[j].orig, IncIcnI); {Agrega a lista por defecto.}
             end;
           end;
         end else begin  //atributo no existe
