@@ -804,7 +804,7 @@ begin
   if not HaveLastIdent then exit;
   Pos1 := Point(StartIdentif, CurY);
   i := CurX;
-  while curLine[i] in CHAR_BODY_IDEN do  //no debería ser necesario verificar el final
+  while (i<=length(curLine)) and (curLine[i] in CHAR_BODY_IDEN) do
     inc(i);
   Pos2 := Point(i, CurY);
   InsertSequence(ed, Pos1, Pos2, ReplaceSeq);
