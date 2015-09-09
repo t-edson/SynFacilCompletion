@@ -1,5 +1,5 @@
 {
-SynFacilCompletion 1.13b
+SynFacilCompletion 1.13
 =======================
 Por Tito Hinostroza 4/09/2014
 * Se crea rutina personalizada para dibujar ítems en la ventana de completado.
@@ -27,7 +27,7 @@ mucho en un identificador.
 * Realizar dos pasadas en la etiqueta <completion>, para que se puedan definir las listas
 en cualquier parte.
 
-En esta versión se corrige un error de la versión 1.12, y se hace un reordenamiento de
+En esta versión se corrigen algunos errores de la versión 1.12, y se hace un reordenamiento de
 algunas rutinas y objetos de la librearía.
 Los cambios más notables, son que ahora se puede mostrar íconos en la lista de completado
 y se puede controlar la posición con que se deja al cursor, después del reemplazo.

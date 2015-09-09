@@ -1,4 +1,4 @@
-SynFacilCompletion 1.13b
+SynFacilCompletion 1.13
 =======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -177,6 +177,7 @@ The definition of Opening events, can control:
 * When opening the completion menu.
 * How to filter the items.
 * What action to take for replacing.
+* Where to leave the cursor after the replace.
 
 For more information, check the documentation.
 
