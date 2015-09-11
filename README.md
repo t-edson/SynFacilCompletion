@@ -1,4 +1,4 @@
-SynFacilCompletion 1.13
+SynFacilCompletion 1.12
 =======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -135,49 +135,6 @@ The words for completion, can be grouped on list using the tag <LIST>, like in t
 
 Having lists in this way, make easy to classify the total words for completion, and can be reused when using advanced definitions.
 
-## Replacing a different word
-
-When defining a list of items, it's possible to define a different word for completion, so the replacing would be done using another word instead of the item shown in the menu.
-
-```
-  <Completion>
-    <OpenOn >
-       foo|foo_to_show
-       bar|bar_to_show
-    </OpenOn>
-	
-    ...
-	
-  </Completion>
-```
-
-The char "|" is a separator of fields. The structure of fields for the items is:
-
-\<Caption>|\<Text for replacing>|\<Description>
-
-The Description field is not implemented in this version.
-
-## Defining Opening events
-
-A more advanced definition of the compeltion functionality, can be implemented using Opening events.
-
-An Opening event is defined using the tag <OpenOn>, like is shown in the following definition:
-
-```
-  <OpenOn AfterPattern='"choose",space' FilterBy="None" Action="Insert">
-	foo
-	bar
-	foobar
-  </OpenOn>
-
-```
-
-The definition of Opening events, can control:
-
-* When opening the completion menu.
-* How to filter the items.
-* What action to take for replacing.
-* Where to leave the cursor after the replace.
 
 For more information, check the documentation.
 
