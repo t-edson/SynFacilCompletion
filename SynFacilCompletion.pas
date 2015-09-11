@@ -548,10 +548,7 @@ begin
   curBlock := nil;
   //explora la línea con el resaltador
   hlt.ExploreLine(ed.CaretXY, tokens, iTok0);
-  curLine := ed.Lines[ed.CaretY-1]; { TODO : Para evitar perder tiempo copiando la línea actual, se
-                                   podría usar una versión de ExploreLine() que devuelva la línea
-                                   actual, ya que esta copia es creada ya dentro de ExploreLine()
-                                   y mejor aún que explore solo hasta el token[0]}
+  curLine := ed.Lines[ed.CaretY-1]; //Se gaurda porque se va a necesitar
   if iTok0=-1 then exit;   //no ubica al token actual
   tok0 := @tokens[iTok0];    //lee token actual token[0]
   CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
