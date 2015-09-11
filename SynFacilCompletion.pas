@@ -1,22 +1,20 @@
 {
-SynFacilCompletion 1.12
+SynFacilCompletion 1.13
 =======================
 Por Tito Hinostroza 4/09/2014
-* Se cambia TFaCompletItem de registro a clase, para poder incluir fácilmente las
-referencias en las listas de completado TStrings.
-* Se cambia el sistema de trabajo, en cuanto a la inclusión de elistas en los eventos
-de apertura. Ahora solo se guardan las referencias.
-* Se organizan los mensajes de error y agregan nuevos mensajes.
-* Se corrige un error en el procesamiento de los patrones que incluína "!".
-* Se crean los métodos ShiftLPattern, ExtractElementIn(), AddBeforeElement() y
-AddAfterElement(). Se simplifica AddOpenEvent().
-* Se eliminan algunos métodos que ya no son necesarios.
-* Se incluye información de bloque para el evento de apertura.
-* Se incluye la posibilidad de incluir un texto diferente para el reemplazo de la palabra
-de trabajo.
+* Se crea rutina personalizada para dibujar ítems en la ventana de completado.
+* Se agrega el campo "idxIcon" a la clase TFaCompletItem, para indica el ícono del ítem.
+* Se crea la propiedad "IconList" en el resaltador para poder configurar los íconos.
+* Se habilita el dibujo de íconos en el menú de completado.
+* Se elimina el método TFaCompletItem.Extract y se crea la propiedad TFaCompletItem.Caption.
+* Se corrigió un error producido cuando la lista de completado, contenía un solo ítem
+y uno en blanco. Si se selecionaba el ítem en blanco, generaba un error en tiempo de
+ejecución.
+* Desaparece TFaOpenEvent.DoDefaultAction y se agrega funcionalidades a TFaCursorEnviron,
+para realizar el reemplazo de texto.
+* Se implementa la funcionalidad de posicionamiento del cursor, después del reemplazo.
 
 Pendientes:
-* Poder posicionar el cursor después del reemplazo, usando la secuencia de escape "\c".
 * Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificsr
 la definición clásica.
 * Ver el trabajo de la librería con caracteres UTF-8 de dos bytes.
@@ -26,14 +24,14 @@ y de ser posible creando una rutina personalizada, en lugar de usar ExploreLine(
 funciones.
 * Hacer que la ventana de completado haga seguimiento del cursor, cuando este retrocede
 mucho en un identificador.
-* Incluir íconos en la visualización de la ventana de completado.
-* Realizar dos pasadas en la etiqueta compeltion, para que se puedan definri las listas
+* Realizar dos pasadas en la etiqueta <completion>, para que se puedan definir las listas
 en cualquier parte.
 
-En esta versión se corrigen algunos errores pendientes de la verisón 1.11, y se reordena el código
-para hacerlo de más fácil mantenimiento. El cambio más drástico es el referido al cambio
-de las estructuras TFaCompletItem, para poder implementar las mejoras en la apariencia
-de la ventana de completado.
+En esta versión se corrigen algunos errores de la versión 1.12, y se hace un reordenamiento de
+algunas rutinas y objetos de la librearía.
+Los cambios más notables, son que ahora se puede mostrar íconos en la lista de completado
+y se puede controlar la posición con que se deja al cursor, después del reemplazo.
+Se mantienen todas las funcionalidades y la compatibilidad, con las versiones anteriores.
 }
 {Descripción
 ============
@@ -82,7 +80,7 @@ unit SynFacilCompletion;
 {$define Verbose}
 interface
 uses
-  Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics,
+  Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
   SynEdit, SynEditHighlighter, SynEditTypes, SynEditKeyCmds, Lazlogger,
   SynFacilHighlighter, SynFacilBasic, SynCompletion;
 
@@ -92,14 +90,17 @@ type
   { TFaCompletItem }
 
   TFaCompletItem = class
-    text   : string;   //etiqueta a mostrar en el menú
-    replac : string;   //contenido a reemplazar
-    descrip: string;   //descripción del campo
-    OffCur : TPoint;   //desplazamiento del cursor después de realizar el reemplazo
+  private
+    fCaption: string;  //etiqueta a mostrar en el menú
+    Replac : string;   //contenido a reemplazar
+    Descrip: string;   //descripción del campo
+    idxIcon: integer;  //índice al ícono
+    function ExtractField(var str: string): string;
+    procedure SetCaption(AValue: string);
   public
+    property Caption: string read FCaption write SetCaption;
     function StartWith(const c: char): boolean; inline;
     function StartWithU(const c: char): boolean; inline;
-    procedure Extract(item: string); //Extrae lso campos de una cadena
   end;
   //TFaCompletItemPtr = ^TFaCompletItem;
   TFaCompletItems = specialize TFPGObjectList<TFaCompletItem>;
@@ -118,8 +119,7 @@ type
   TFaCompletionList = class
     Name : string;
     Items: TFaCompletItems; //lista de las palabras disponibles
-    procedure AddItems(list: string);
-//    procedure CopyItemsTo(sList: TStrings);
+    procedure AddItems(list: string; idxIcon: integer);
   public
     constructor Create;
     destructor Destroy; override;
@@ -145,6 +145,15 @@ type
   end;
   TFaPatternElementPtr = ^TFaPatternElement;
 
+  {Tipos de secuencias de escape que se puede indicar para el reemplazo de texto.
+   No son todas las secuencias de escape, sino solo las que necesitan procesarse
+   independientemente para ejecutar correctamente la acción de reemplazo.}
+  TFaCompletSeqType = (
+    csqNone,    //no es secuencia de escape
+    csqCurPos,  //secuencia que indica posición del cursor
+    csqTabSpa   //tabulación al nivel del primer caracter de línea anterior
+  );
+
   //Entorno del cursor
   { TFaCursorEnviron }
   TFaCursorEnviron = class
@@ -152,6 +161,9 @@ type
     hlt: TSynFacilSyn;        //referencia al resaltador que lo contiene
     tokens   : TATokInfo;     //lista de tokens actuales
     StartIdentif : integer;   //inicio de identificador
+    function ExtractStaticText(var ReplaceSeq: string;
+      var seq: TFaCompletSeqType): string;
+    procedure InsertSequence(ed: TSynEdit; Pos1, Pos2: TPoint; ReplaceSeq: string);
     procedure UpdateStartIdentif;
   public
     inMidTok : boolean;        //indica si el cursor está en medio de un token
@@ -172,8 +184,10 @@ type
     function HaveLastIdent: boolean;
     function LastIdent: string;
     function LastIdentPart: string;
-    procedure ReplaceLastTok(ed: TSynEdit; newStr: string);
-    procedure ReplaceLastIden(ed: TSynEdit; newStr: string);
+    //Estas funciones implementan las acciones
+    procedure ReplaceLastTok(ed: TSynEdit; ReplaceSeq: string);
+    procedure ReplaceLastIden(ed: TSynEdit; ReplaceSeq: string);
+    procedure Insert(ed: TSynEdit; ReplaceSeq: string);
   public
     constructor Create(hlt0: TSynFacilSyn);
   end;
@@ -216,8 +230,7 @@ type
     filter: TFaFilterList;
     block : TFaSynBlock;  //bloque donde es válido
     Action: TFAPatAction;  //Acción al seleccionar lista
-    procedure DoDefaultAction(ed: TSynEdit; env: TFaCursorEnviron; newStr: string);
-    procedure DoAction(ed: TSynEdit; env: TFaCursorEnviron; itemSel: string);
+    procedure DoAction(ed: TSynEdit; env: TFaCursorEnviron; ReplaceSeq: string);
     procedure FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings); //Llena Items en una lista
     //manejo patrones
     procedure ClearBeforePatt;  //limpia el patron anterior
@@ -226,9 +239,9 @@ type
     procedure AddAfterElement(var aftPat: string; var ErrStr: string);
     //manejo de ítems
     procedure LoadItems(const curEnv: TFaCursorEnviron);
-    procedure AddItem(txt: string);
-    procedure AddItems(lst: TStringList; blk: TFaSynBlock);
-    procedure AddItems(list: string; blk: TFaSynBlock);
+    procedure AddItem(txt: string; idxIcon: integer);
+    procedure AddItems(lst: TStringList; idxIcon: integer);
+    procedure AddItems(list: string; idxIcon: integer);
     procedure AddList(Alist: TFaCompletionList; OnlyRef: boolean);
     procedure ClearItems;
   public
@@ -245,12 +258,8 @@ type
   TSynCompletionF = class(TSynCompletion)
     function OnSynCompletionPaintItem(const AKey: string; ACanvas: TCanvas; X,
       Y: integer; IsSelected: boolean; Index: integer): boolean;
-
-  private
-    function PaintCompletionItem(const AKey: string; ACanvas: TCanvas; X, Y,
-      MaxX: integer; ItemSelected: boolean; Index: integer;
-      aCompletion: TSynCompletion): TPoint;
   public
+    IconList: TImageList;   //lista de íconos
     procedure Refresh;
     constructor Create(AOwner: TComponent); override;
   end;
@@ -285,11 +294,13 @@ type
     CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     function FindOpenEventMatching: TFaOpenEvent;
     procedure ProcXMLOpenOn(nodo: TDOMNode);
+    procedure SetIconList(AValue: TImageList);
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
-    SelectOnEnter: boolean;   //habilita la selección con enter
-    CaseSensComp: boolean;     //Uso de caja, en autocompletado
+    SelectOnEnter: boolean; //habilita la selección con enter
+    CaseSensComp: boolean;  //Uso de caja, en autocompletado
     OpenOnKeyUp: boolean;   //habilita que se abra automáticamente al soltar una tecla
+    property IconList: TImageList read MenuComplet.IconList write SetIconList;
     function AddOpenEvent(AfterPattern, BeforePattern: string;
       filter: TFaFilterList): TFaOpenEvent;
     function AddComplList(lstName: string): TFaCompletionList;
@@ -414,98 +425,83 @@ begin
   //No enecontró
   lext.Free;
 end;
-function TFaCompletItem.StartWith(const c: char): boolean;
-begin
-  Result := (text<>'') and (text[1] = c);
-end;
-function TFaCompletItem.StartWithU(const c: char): boolean;
-begin
-  Result := (text<>'') and (UpCase(text[1]) = c);
-end;
-
-procedure TFaCompletItem.Extract(item: string);
-{Recibe una cadena que representa a un ítem y de el extrae los campos, si es que vinieran
-codificados. El formato de la codificiacón es:
- <texto a mostrar> | <texto a reemplazar> | <descripción>
-Además se soportan las siguienets ecuencias de escape:
-\n -> salto de línea
-\c -> posición en donde se debe dejar el cursor
-\| -> caracter "|"
-}
+{ TFaCompletItem }
+function TFaCompletItem.ExtractField(var str: string): string;
+{Extrae un campo de la cadena. Los campos deben estar delimitado con "|" sin caracter
+ de escape}
   function EscapeBefore(i: integer): boolean; inline;
   begin
     if i<1 then exit(false);
-    if item[i-1] = '\' then exit(true) else exit(false);
+    if str[i-1] = '\' then exit(true) else exit(false);
   end;
+var
+  psep: SizeInt;
+begin
+  psep := pos('|', str);
+  if (psep = 0) or EscapeBefore(psep) then begin
+    //no hay separador de campos, es un caso simple
+    Result := str;
+    str := '';
+  end else begin
+    //hay separador
+    Result:=copy(str,1,psep-1);
+    str := copy(str, psep+1, length(str));
+  end;
+end;
+procedure TFaCompletItem.SetCaption(AValue: string);
+{Asigna el valor a Caption, separando los campos si es que vinieran codificados}
+{Recibe una cadena que representa a un ítem y de el extrae los campos, si es que vinieran
+codificados. El formato de la codificiacón es:
+ <texto a mostrar> | <texto a reemplazar> | <descripción>
+}
   function ExecEscape(const s: string): string;
+  {Reemplaza las secuencias de escape para mostrarlas en el menú de completado.
+   Tal vez convenga hacer este reemplazo, en la rutina que muestra los ítems, por un
+   tema de velocidad.}
   begin
-    Result := StringReplace(s, '\n', LineEnding, [rfReplaceAll]);
-    Result := StringReplace(Result, '\t', #9, [rfReplaceAll]);
+    Result := StringReplace(s, '\n', ' ', [rfReplaceAll]);
+    Result := StringReplace(Result, '\t', ' ', [rfReplaceAll]);
+    Result := StringReplace(Result, '\u', ' ', [rfReplaceAll]);
+    Result := StringReplace(Result, '\\', '\', [rfReplaceAll]);
     Result := StringReplace(Result, '\|', '|', [rfReplaceAll]);
-    //Se debería implementar un método más rápido
-    {setlength(Result, length(s));  //hace espacio
-    j := 1;
-    i := 1;
-    while i <= length(s) do begin
-      if s[i]='\' then begin
-
-      end else begin
-        Result[j] := s[i];
-        inc(j);
-      end;
-      inc(i);
-    end;}
+    Result := StringReplace(Result, '\_', '', [rfReplaceAll]);
   end;
-  function ExtractField(var str: string): string;
-  {Extrae un campo de la cadena. El campo debe estar delimitado con "|"}
-  var
-    psep: SizeInt;
-  begin
-    psep := pos('|', item);
-    if (psep = 0) or EscapeBefore(psep) then begin
-      //no hay separador de campos, es un caso simple
-      Result := str;
-      str := '';
-    end else begin
-      //hay separador
-      Result:=copy(item,1,psep-1);
-      str := copy(str, psep+1, length(str));
-    end;
-  end;
-
 var
   txt1, txt2: String;
 begin
-  txt1 := ExtractField(item);
-  if item='' then begin
+  if fCaption=AValue then Exit;
+  txt1 := ExtractField(AValue);
+  if AValue='' then begin
     //solo hay un campo
-    text    :=ExecEscape(txt1);
-    replac :=text;
-    descrip  :='';
-    OffCur.x :=0;
-    OffCur.y :=0;
+    fCaption :=ExecEscape(txt1);
+    Replac   :=txt1;   //los caracteres de escape se expandirán al reemplazar
+    Descrip  :='';
   end else begin
     //hay al menos otro campo
-    txt2 := ExtractField(item);
-    if item = '' then begin
+    txt2 := ExtractField(AValue);
+    if AValue = '' then begin
       //hay solo dos campos
-      text    :=ExecEscape(txt1);
-      replac :=ExecEscape(txt2);
-      descrip :='';
-      OffCur.x:=0;
-      OffCur.y:=0;
+      fCaption :=ExecEscape(txt1);
+      Replac   := txt2;  //los caracteres de escape se expandirán al reemplazar
+      Descrip  :='';
     end else begin
       //has 3 o más campos
-      text    :=ExecEscape(txt1);
-      replac :=ExecEscape(txt2);
-      descrip :=ExecEscape(item);
-      OffCur.x:=0;
-      OffCur.y:=0;
+      fCaption :=ExecEscape(txt1);
+      Replac   := txt2;  //los caracteres de escape se expandirán al reemplazar
+      Descrip  := ExecEscape(AValue);
     end;
   end;
 end;
+function TFaCompletItem.StartWith(const c: char): boolean;
+begin
+  Result := (fCaption<>'') and (fCaption[1] = c);
+end;
+function TFaCompletItem.StartWithU(const c: char): boolean;
+begin
+  Result := (fCaption<>'') and (UpCase(fCaption[1]) = c);
+end;
 { TFaCompletionList }
-procedure TFaCompletionList.AddItems(list: string);
+procedure TFaCompletionList.AddItems(list: string; idxIcon: integer);
 //Agrega una lista de ítems, separados por espacios, a la lista de completado
 var
   lst: TStringList;
@@ -520,20 +516,12 @@ begin
   //agrega
   for i:= 0 to lst.Count-1 do begin
     it := TFaCompletItem.Create;
-    it.Extract(lst[i]);
+    it.Caption := lst[i];
+    it.idxIcon:=idxIcon;
     Items.Add(it);
   end;
   lst.Destroy;
 end;
-{procedure TFaCompletionList.CopyItemsTo(sList: TStrings);
-//Agrega su contendio a la lista "sList"
-var
-  i: Integer;
-begin
-  for i:= 0 to High(items) do begin
-    sList.Add(items[i].text);
-  end;
-end;}
 constructor TFaCompletionList.Create;
 begin
   Items:= TFaCompletItems.Create(true);  //lista con administración
@@ -543,7 +531,6 @@ begin
   Items.Destroy;
   inherited Destroy;
 end;
-
 { TFaCursorEnviron }
 constructor TFaCursorEnviron.Create(hlt0: TSynFacilSyn);
 begin
@@ -561,10 +548,7 @@ begin
   curBlock := nil;
   //explora la línea con el resaltador
   hlt.ExploreLine(ed.CaretXY, tokens, iTok0);
-  curLine := ed.Lines[ed.CaretY-1]; { TODO : Para evitar perder tiempo copiando la línea actual, se
-                                   podría usar una versión de ExploreLine() que devuelva la línea
-                                   actual, ya que esta copia es creada ya dentro de ExploreLine()
-                                   y mejor aún que explore solo hasta el token[0]}
+  curLine := ed.Lines[ed.CaretY-1]; //Se gaurda porque se va a necesitar
   if iTok0=-1 then exit;   //no ubica al token actual
   tok0 := @tokens[iTok0];    //lee token actual token[0]
   CurX := ed.LogicalCaretXY.x;  //usa posición física para comparar
@@ -596,7 +580,8 @@ begin
   debugln(')');
   {$ENDIF}
 end;
-//Las siguientes funciones, deben llamarse después de lamar a LookAround()
+{Las siguientes funciones, deben llamarse después de lamar a LookAround(). Deben ser de
+ejecución rápida}
 function TFaCursorEnviron.HaveLastTok: boolean; inline;
 begin
   Result := (tok_1 <> nil);
@@ -657,78 +642,202 @@ function TFaCursorEnviron.LastIdentPart: string;
 begin
   Result := copy(curLine, StartIdentif, CurX-StartIdentif);
 end;
-procedure TFaCursorEnviron.ReplaceLastTok(ed: TSynEdit; newStr: string);
+{Estas funciones implementan las acciones. Procesan las secuencias de escape}
+function TFaCursorEnviron.ExtractStaticText(var ReplaceSeq: string;
+                                            var seq: TFaCompletSeqType): string;
+{Extrae un fragmento de texto de "ReplaceSeq", que puede insertarse directamente en el editor,
+ sin necesidad de hacer cálculos de posición, o que no contengan comandos de posicionamiento
+ del cursor. La idea es que el texto que se devuelva aquí, se pueda insertar directamente
+ en el editor con una simple operación "Insert". El tipo de secuencia que produjo la ruptura,
+ se devuelve en "seq"}
+  function ReplaceEscape(const s: string): string;
+  begin
+    Result := StringReplace(s, '\n', LineEnding, [rfReplaceAll]);
+    Result := StringReplace(Result, '\t', #9, [rfReplaceAll]);
+    Result := StringReplace(Result, '\|', '|', [rfReplaceAll]);
+    Result := StringReplace(Result, '\\', '\', [rfReplaceAll]);
+  end;
+  function FirstPos(substrs: array of string; str: string; var found: string): integer;
+  {Busca la ocurrencia de cualquiera de las cadenas dadas en "substrs". Devuelve el índice
+   a la primera encontrada. Si no enceuntra ninguna, devuelve 0.}
+  var
+    i, p: Integer;
+    limit: Integer;
+    lin: string;
+  begin
+    Result := 0;   //valor inicial
+    found := '';
+    limit := length(str);
+    for i:=0 to high(substrs) do begin
+      lin := copy(str, 1, limit);
+      p := Pos(substrs[i], lin);
+      if p<>0 then begin
+        //encontró uno, compara
+        if p<limit then begin
+          limit := p;  //restringe límite para la siguiente búsqueda
+          found := substrs[i];  //lo que enontró
+          Result := p;
+        end;
+      end;
+    end;
+  end;
+var
+  p: Integer;
+  hay: string;
+begin
+  //Detcta las secuencias de posición de cursor, o tabulación '\u'.
+  p := FirstPos(['\_','\u'], ReplaceSeq, hay);  //tabulación al primer caracter no blanco de la línea superior no blanca
+  if hay = '' then begin
+    //No hay secuecnia especial
+    Result := ReplaceEscape(ReplaceSeq);
+    seq := csqNone;   //no se ecnontró secuencia de ruptura
+    ReplaceSeq := '';
+  end else if hay = '\_' then begin
+    //primero está la secuencia de cursor
+    Result := ReplaceEscape(copy(ReplaceSeq,1,p-1));
+    seq := csqCurPos;   //Indica secuencia de posicionamiento de cursor
+    ReplaceSeq := copy(ReplaceSeq, p+2, length(ReplaceSeq));
+  end else if hay = '\u' then begin
+    //primero está la secuencia de tabulación
+    Result := ReplaceEscape(copy(ReplaceSeq,1,p-1));
+    seq := csqTabSpa;   //Indica secuencia
+    ReplaceSeq := copy(ReplaceSeq, p+2, length(ReplaceSeq));
+  end;
+end;
+procedure TFaCursorEnviron.InsertSequence(ed: TSynEdit; Pos1, Pos2: TPoint; ReplaceSeq: string);
+{Inserta una secuencia de reemplazo en el bloque definido por P1 y P2}
+  function FindNoWhiteLineUp(ed: TSynEdit): string;
+  {Busca hacia arriba, una línea con caracteres diferentes de espacio y que ocupen una posición
+   más a la derecha de la posición actual del cursor. La búsqueda se hace a partir de la
+   posición actual del cursor.  Si no encuentra, devuelve línea en blanco.}
+  var
+    x,y: Integer;
+    lin: String;
+  begin
+    y := ed.CaretY-1;  //desde la línea anterior
+    x := ed.CaretX;
+    while y>0 do begin
+      lin := ed.Lines[y-1];
+      if trim(copy(lin,x, length(lin)))<>'' then
+        exit(ed.Lines[y-1]);
+      dec(y);
+    end;
+    //no encontró
+    exit('');
+  end;
+var
+  toRepl: String;
+  cursorPos: TPoint;
+  seq: TFaCompletSeqType;
+  linNoWhite: String;
+  i: Integer;
+begin
+  ed.BeginUndoBlock;
+  ed.TextBetweenPointsEx[Pos1,Pos2, scamEnd] := ''; //elimina el contenido y deja cursor al final
+  cursorPos.x := -1;  //marca bandera
+  while ReplaceSeq<>'' do begin
+    toRepl := ExtractStaticText(ReplaceSeq, seq);
+    case seq of
+    csqNone: begin
+      //no hay ruptura, es un texto sencillo
+      //reemplaza y deja cursor al final
+      Pos1 := ed.CaretXY;
+      ed.TextBetweenPointsEx[Pos1,Pos1, scamEnd] := toRepl;
+      //se suepone que esta es la última secuencia
+    end;
+    csqCurPos: begin
+      //hay comando de posicionamiento de cursor
+      //reemplaza, deja cursor al final y guarda posición
+      Pos1 := ed.CaretXY;
+      ed.TextBetweenPointsEx[Pos1,Pos1, scamEnd] := toRepl;
+      cursorPos := ed.CaretXY;
+    end;
+    csqTabSpa: begin
+      //hay comando de tabulación inteligente
+      Pos1 := ed.CaretXY;
+      //inserta fragmento
+      ed.TextBetweenPointsEx[Pos1,Pos1, scamEnd] := toRepl;
+      //calcula espaciado
+      linNoWhite := FindNoWhiteLineUp(ed);
+      if linNoWhite<>'' then begin
+        //hay línea sin blancos, busca posición de caracter no blanco
+        for i:=ed.CaretX to length(linNoWhite) do begin
+          //La definición de blanco #1..#32, corresponde al resaltador
+          if not (linNoWhite[i] in [#1..#32]) then begin
+             //encontró.
+             ed.CaretX:=i;
+             break; //sale del for
+          end;
+        end;
+        {Si llega aquí, es que no encontró el caracter buscado, lo que indicaria que el
+         algoritmo de búsqueda de FindNoWhiteLineUp() no es consistente con este código.}
+      end;
+    end;
+    end;
+  end;
+  if cursorPos.x<>-1 then begin
+    //ha habido posicionamiento de cursor
+    ed.CaretXY := cursorPos;
+  end;
+  ed.EndUndoBlock;
+end;
+procedure TFaCursorEnviron.ReplaceLastTok(ed: TSynEdit; ReplaceSeq: string);
 {Reemplaza el último token}
 var
   Pos1, Pos2: TPoint;
 begin
+  if not HaveLastTok then exit;
   Pos1 := Point(tok_1^.posIni + 1, CurY);
   Pos2 := Point(tok_1^.posIni + tok_1^.length+1, CurY);
-  ed.TextBetweenPoints[Pos1,Pos2] := NewStr;  //usa TextBetweenPoints(), para poder deshacer
+  //Realiza el reemplazo del texto, con procesamiento
+  InsertSequence(ed, Pos1, Pos2, ReplaceSeq);
 end;
-procedure TFaCursorEnviron.ReplaceLastIden(ed: TSynEdit; newStr: string);
-{Reemplaza el último identificador. Debe llamarse siempre despues de llamar
- a HaveLastIdent}
+procedure TFaCursorEnviron.ReplaceLastIden(ed: TSynEdit; ReplaceSeq: string);
+{Reemplaza el último identificador}
 var
   Pos1, Pos2: TPoint;
   i: Integer;
 begin
+  if not HaveLastIdent then exit;
   Pos1 := Point(StartIdentif, CurY);
   i := CurX;
-  while curLine[i] in CHAR_BODY_IDEN do  //no debería ser necesario verificar el final
+  while (i<=length(curLine)) and (curLine[i] in CHAR_BODY_IDEN) do
     inc(i);
   Pos2 := Point(i, CurY);
-  ed.TextBetweenPoints[Pos1,Pos2] := NewStr;  //usa TextBetweenPoints(), para poder deshacer
+  InsertSequence(ed, Pos1, Pos2, ReplaceSeq);
 end;
-
-{ TFaOpenEvent }
-procedure TFaOpenEvent.DoDefaultAction(ed: TSynEdit; env: TFaCursorEnviron; newStr: string);
-{Reemplaza el token o dientificador de trabajo actual}
-begin
-  case Filter of
-  fil_None: ;  //no hay elemento de selcción
-  fil_LastTok,
-  fil_LastTokPart: begin  //trabaja con el último token
-      if env.HaveLastTok then
-        env.ReplaceLastTok(ed, newStr);
-      //posiciona al cursor al final de la palabra reemplazada
-      ed.LogicalCaretXY :=Point(env.tok_1^.posIni+length(NewStr)+1,ed.CaretY);  //mueve cursor
-    end;
-  fil_LastIdent,
-  fil_LastIdentPart: begin  //trabaja con el úmtimo identificador
-      if env.HaveLastIdent then
-        env.ReplaceLastIden(ed, newStr);
-      //posiciona al cursor al final de la palabra reemplazada
-      ed.LogicalCaretXY :=Point(env.StartIdentif+length(NewStr),ed.CaretY);  //mueve cursor
-    end;
-  end;
-end;
-procedure TFaOpenEvent.DoAction(ed: TSynEdit; env: TFaCursorEnviron;
-  itemSel: string);
-{Ejecuta la acción que se tenga definido para el evento de apertura}
+procedure TFaCursorEnviron.Insert(ed: TSynEdit; ReplaceSeq: string);
+{Reemplaza un texto en la posición actual del cursor}
 var
   Pos1: TPoint;
-  Pos2: TPoint;
+begin
+  Pos1 := Point(CurX, CurY);
+  InsertSequence(ed, Pos1, Pos1, ReplaceSeq);
+end;
+{ TFaOpenEvent }
+procedure TFaOpenEvent.DoAction(ed: TSynEdit; env: TFaCursorEnviron;
+  ReplaceSeq: string);
+{Ejecuta la acción que se tenga definido para el evento de apertura}
 begin
   case Action of
   pac_None:;  //no ahce nada
   pac_Default:  //acción por defecto
-    DoDefaultAction(ed, env, itemSel);
-  pac_Insert:  begin //inserta
-      Pos1 := Point(env.CurX, env.CurY);
-      Pos2 := Point(env.CurX, env.CurY);
-      ed.TextBetweenPoints[Pos1,Pos2] := itemSel;
-      ed.LogicalCaretXY :=Point(ed.CaretX+length(itemSel),ed.CaretY);  //mueve cursor
-    end;
-  pac_Rep_LastTok: begin
-      if env.HaveLastTok then
-        env.ReplaceLastTok(ed, itemSel);
-      //posiciona al cursor al final de la palabra reemplazada
-      ed.LogicalCaretXY :=Point(env.tok_1^.posIni+length(itemSel)+1,ed.CaretY);  //mueve cursor
-  end;
+      case Filter of
+      fil_None: ;  //no hay elemento de selcción
+      fil_LastTok,
+      fil_LastTokPart:  //trabaja con el último token
+        env.ReplaceLastTok(ed, ReplaceSeq);
+      fil_LastIdent,
+      fil_LastIdentPart:  //trabaja con el úmtimo identificador
+        env.ReplaceLastIden(ed, ReplaceSeq);
+      end;
+  pac_Insert:  //inserta
+    env.Insert(ed, ReplaceSeq);
+  pac_Rep_LastTok:
+    env.ReplaceLastTok(ed, ReplaceSeq);
   {Se pueden completar más acciones}
   else
-    DoDefaultAction(ed, env, itemSel);
+    env.ReplaceLastTok(ed, ReplaceSeq);
   end;
 end;
 procedure TFaOpenEvent.FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings);
@@ -746,16 +855,16 @@ procedure TFaOpenEvent.FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings
     if env.caseSen then begin
       for it in Avails do begin
         //esta no es la forma más eficiente de comparar, pero sirve por ahora.
-        if str = copy(it.text,1,l) then
+        if str = copy(it.fCaption,1,l) then
 //          lst.Add(Avails[i]^.text);
-          lst.AddObject(it.text, it);
+          lst.AddObject(it.fCaption, it);
       end;
     end else begin  //ignora la caja
       str2 := UpCase(str);
       for it in Avails do begin
-        if str2 = upcase(copy(it.text,1,l)) then begin
+        if str2 = upcase(copy(it.fCaption,1,l)) then begin
 //          lst.Add(Avails[i]^.text);
-          lst.AddObject(it.text, it);
+          lst.AddObject(it.fCaption, it);
         end;
       end;
     end;
@@ -767,7 +876,7 @@ begin
   case Filter of
   fil_None: begin  //agrega todos
       for it in Avails do begin  //agrega sus ítems
-        lst.AddObject(it.text, it);
+        lst.AddObject(it.fCaption, it);
       end;
     end;
   fil_LastTok: begin  //último token
@@ -1008,7 +1117,7 @@ begin
     startX := curEnv.CurX;
   end;
   {$IFDEF Verbose}
-  debugln('  Cargados: '+IntToStr(Avails.Count)+ ' ítems.')
+  debugln('  Cargados en Avail: '+IntToStr(Avails.Count)+ ' ítems.')
   {$ENDIF}
 end;
 function TFaOpenEvent.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
@@ -1094,16 +1203,17 @@ begin
   if Result then debugln(' -> Aplicable Pat:'+ name);
   {$ENDIF}
 end;
-procedure TFaOpenEvent.AddItem(txt: string);
+procedure TFaOpenEvent.AddItem(txt: string; idxIcon: integer);
 {Agrega un ítem al evento de apertura. Versión simplificada}
 var
   it: TFaCompletItem;
 begin
   it := TFaCompletItem.Create;
-  it.Extract(txt);
+  it.Caption := txt;
+  it.idxIcon:=idxIcon;
   Items.Add(it);
 end;
-procedure TFaOpenEvent.AddItems(lst: TStringList; blk: TFaSynBlock);
+procedure TFaOpenEvent.AddItems(lst: TStringList; idxIcon: integer);
 {Agrega una lista de ítems al evento de apertura, desde un  TStringList}
 var
   it: TFaCompletItem;
@@ -1111,11 +1221,12 @@ var
 begin
   for i:= 0 to lst.Count-1 do begin
     it := TFaCompletItem.Create;
-    it.Extract(lst[i]);
+    it.Caption := lst[i];
+    it.idxIcon:=idxIcon;
     Items.Add(it);
   end;
 end;
-procedure TFaOpenEvent.AddItems(list: string; blk: TFaSynBlock);
+procedure TFaOpenEvent.AddItems(list: string; idxIcon: integer);
 {Agrega una lista de ítems al evento de apertura, desde una cadena }
 var
   lst: TStringList;
@@ -1125,7 +1236,7 @@ begin
   lst.Delimiter := ' ';
   lst.DelimitedText := list;
   //agrega
-  AddItems(lst, blk);
+  AddItems(lst, idxIcon);
   lst.Destroy;
 end;
 procedure TFaOpenEvent.AddList(Alist: TFaCompletionList; OnlyRef: boolean);
@@ -1164,128 +1275,39 @@ end;
 function TSynCompletionF.OnSynCompletionPaintItem(const AKey: string;
   ACanvas: TCanvas; X, Y: integer; IsSelected: boolean; Index: integer): boolean;
 var
-  MaxX: Integer;
+//  MaxX: Integer;
   hl: TSynCustomHighlighter;
+  Capt: String;
+  idIcon: Integer;
+  obj: TObject;
 begin
-  //configura propiedades de texto
-//  if (Editor<>nil) then begin
-//    ACanvas.Font := Editor.Font
-//  end;
+{
   ACanvas.Font.Style:=[];
-{  if not IsSelected then
+  if not IsSelected then
     ACanvas.Font.Color := FActiveEditDefaultFGColor
   else
-    ACanvas.Font.Color := FActiveEditSelectedFGColor;}
-  MaxX:=TheForm.ClientWidth;
+    ACanvas.Font.Color := FActiveEditSelectedFGColor;
+  MaxX:=TheForm.ClientWidth;}
   hl := nil;
   if Editor <> nil then
     hl := Editor.Highlighter;
-  PaintCompletionItem(AKey, ACanvas, X, Y, MaxX, IsSelected, Index, self);
-
-  Result := false;
-//  Result:=true;  //para indicar que lo intercepta
-end;
-function TSynCompletionF.PaintCompletionItem(const AKey: string;
-  ACanvas: TCanvas; X, Y, MaxX: integer; ItemSelected: boolean; Index: integer;
-  aCompletion: TSynCompletion): TPoint;
-
-var
-  BGRed: Integer;
-  BGGreen: Integer;
-  BGBlue: Integer;
-  TokenStart: Integer;
-  BackgroundColor: TColorRef;
-  ForegroundColor: TColorRef;
-
-  procedure SetFontColor(NewColor: TColor);
-  var
-    FGRed: Integer;
-    FGGreen: Integer;
-    FGBlue: Integer;
-    RedDiff: integer;
-    GreenDiff: integer;
-    BlueDiff: integer;
-  begin
-    NewColor := TColor(ColorToRGB(NewColor));
-    FGRed:=(NewColor shr 16) and $ff;
-    FGGreen:=(NewColor shr 8) and $ff;
-    FGBlue:=NewColor and $ff;
-    RedDiff:=Abs(FGRed-BGRed);
-    GreenDiff:=Abs(FGGreen-BGGreen);
-    BlueDiff:=Abs(FGBlue -BGBlue);
-    if RedDiff*RedDiff + GreenDiff*GreenDiff + BlueDiff*BlueDiff<30000 then
-    begin
-      NewColor:=InvertColor(NewColor);
-      {IncreaseDiff(FGRed,BGRed);
-      IncreaseDiff(FGGreen,BGGreen);
-      IncreaseDiff(FGBlue,BGBlue);
-      NewColor:=(FGRed shl 16) or (FGGreen shl 8) or FGBlue;}
+  Capt := ItemList[Index];
+  if IconList<>nil then begin
+    obj := ItemList.Objects[Index];
+    if obj=nil then begin
+      //Puede pasar cuando no se ha asignado un objeto, sino solo texto
+      idIcon := -1
+    end else begin
+      idIcon := TFaCompletItem(obj).idxIcon;
     end;
-    ACanvas.Font.Color:=NewColor;
+    IconList.Draw(ACanvas, X+2, Y, idIcon);
+    ACanvas.TextOut(X+20, Y, Capt);
+  end else begin
+    ACanvas.TextOut(X+2, Y, Capt);
+    //  PaintCompletionItem(AKey, ACanvas, X, Y, MaxX, IsSelected, Index, self);
   end;
 
-  procedure WriteToken(var TokenStart, TokenEnd: integer);
-  var
-    CurToken: String;
-  begin
-    if TokenStart>=1 then begin
-      CurToken:=copy(AKey,TokenStart,TokenEnd-TokenStart);
-      ACanvas.TextOut(x+1, y, CurToken);
-      x := x + ACanvas.TextWidth(CurToken);
-      //debugln('Paint A Text="',CurToken,'" x=',dbgs(x),' y=',dbgs(y),' "',ACanvas.Font.Name,'" ',dbgs(ACanvas.Font.Height),' ',dbgs(ACanvas.TextWidth(CurToken)));
-      TokenStart:=0;
-    end;
-  end;
-
-var
-  s: string;
-//  IdentItem: TIdentifierListItem;
-  AColor: TColor;
-  IsReadOnly: boolean;
-  ImageIndex: longint;
-begin
-  ForegroundColor := ColorToRGB(ACanvas.Font.Color);
-  Result.X := 0;
-  Result.Y := ACanvas.TextHeight('W');
-
-
-  // draw
-    BackgroundColor:=ColorToRGB(ACanvas.Brush.Color);
-    BGRed:=(BackgroundColor shr 16) and $ff;
-    BGGreen:=(BackgroundColor shr 8) and $ff;
-    BGBlue:=BackgroundColor and $ff;
-    ImageIndex:=-1;
-
-
-        AColor:=clBlack;
-        s:='keyword';
-
-
-    SetFontColor(AColor);
-    ACanvas.TextOut(x+1,y,s);
-    inc(x,ACanvas.TextWidth('constructor '));
-    if x>MaxX then exit;
-
-    // paint the identifier
-    SetFontColor(ForegroundColor);
-    ACanvas.Font.Style:=ACanvas.Font.Style+[fsBold];
-    s:='identificador';
-    //DebugLn(['PaintCompletionItem ',x,',',y,' ',s]);
-    ACanvas.TextOut(x+1,y,s);
-    inc(x,ACanvas.TextWidth(s));
-    if x>MaxX then exit;
-    ACanvas.Font.Style:=ACanvas.Font.Style-[fsBold];
-
-    ImageIndex := -1;
-
-    // paint icon
-    if ImageIndex>=0 then begin
-      //IDEImages.Images_16, es de tipo TCustomImageList
-//      IDEImages.Images_16.Draw(ACanvas,x+1,y+(Result.Y-16) div 2,ImageIndex);
-      inc(x,18);
-      if x>MaxX then exit;
-    end;
-
+  Result:=true;  //para indicar que lo intercepta
 end;
 procedure TSynCompletionF.Refresh;
 begin
@@ -1301,8 +1323,9 @@ end;
 constructor TSynCompletionF.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  TheForm.ShowSizeDrag := True;
   //intercepta este evento
-//  OnPaintItem:=@OnSynCompletionPaintItem;
+  OnPaintItem:=@OnSynCompletionPaintItem;
 end;
 
 { TSynFacilComplet }
@@ -1370,9 +1393,14 @@ begin
   end;
   //no encontró
 end;
+procedure TSynFacilComplet.SetIconList(AValue: TImageList);
+begin
+//  if FIconList=AValue then Exit;
+  MenuComplet.IconList := AValue;
+end;
 procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
 {Procesa el bloque <OpenOn ... >}
-  procedure GetItemsFromNode(nodo: TDOMNode; opEve: TFaOpenEvent);
+  procedure GetItemsFromNode(nodo: TDOMNode; opEve: TFaOpenEvent; idxIcon: integer);
   var
     listIden: DOMString;
     i,j : Integer;
@@ -1380,11 +1408,13 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
     lst: TFaCompletionList;
     tIncAttr, tIncList: TFaXMLatrib;
     tipTok: TSynHighlighterAttributes;
+    tIncIcnI: TFaXMLatrib;
+    IncIcnI: Integer;
   begin
     listIden := nodo.TextContent;
     if listIden<>'' then begin
       //Se ha especificado lista de palabras. Los carga
-      opEve.AddItems(listIden, nil);
+      opEve.AddItems(listIden, idxIcon);
     end;
     //explora nodos
     for i := 0 to nodo.ChildNodes.Count-1 do begin
@@ -1393,15 +1423,17 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
         //lee parámetros
         tIncAttr := ReadXMLParam(nodo2,'Attribute');
         tIncList := ReadXMLParam(nodo2,'List');
-        CheckXMLParams(nodo2, 'Attribute List');  //puede generar excepción
+        tIncIcnI := ReadXMLParam(nodo2,'IconIndex');
+        CheckXMLParams(nodo2, 'Attribute List IconIndex');  //puede generar excepción
         if tIncAttr.hay then begin
           //se pide agregar la lista de identificadores de un atributo en especial
           if IsAttributeName(tIncAttr.val)  then begin
             tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+            if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
             //busca los identificadores para agregarlos
             for j:= 0 to high(SpecIdentifiers) do begin
               if SpecIdentifiers[j].tTok = tipTok then begin
-                opEve.AddItem(SpecIdentifiers[j].orig); {Agrega a lista por defecto.}
+                opEve.AddItem(SpecIdentifiers[j].orig, IncIcnI); {Agrega a lista por defecto.}
               end;
             end;
           end else begin  //atributo no existe
@@ -1434,6 +1466,8 @@ var
   blk: TFaSynBlock;
   success: boolean;
   tActPatt: TFaXMLatrib;
+  tIcnPatt: TFaXMLatrib;
+  idxIcon: Integer;
 begin
   tNamPatt := ReadXMLParam(nodo,'Name');
   tBefPatt := ReadXMLParam(nodo,'BeforePattern');
@@ -1441,7 +1475,8 @@ begin
   tFilPatt := ReadXMLParam(nodo,'FilterBy');
   tBlkPatt := ReadXMLParam(nodo,'Block');
   tActPatt := ReadXMLParam(nodo,'Action');
-  CheckXMLParams(nodo, 'Name BeforePattern AfterPattern FilterBy Block Action');  //puede generar excepción
+  tIcnPatt := ReadXMLParam(nodo,'IconIndex');
+  CheckXMLParams(nodo, 'Name BeforePattern AfterPattern FilterBy Block Action IconIndex');  //puede generar excepción
   if tFilPatt.hay then begin
     case UpCase(tFilPatt.val) of
     'NONE'         : filt := fil_None;
@@ -1489,8 +1524,10 @@ begin
   end else begin
     opEve.Action := pac_Default;
   end;
+  //configura ícono
+  if tIcnPatt.hay then idxIcon := tIcnPatt.n else idxIcon:=-1;
   //verifica contenido
-  GetItemsFromNode(nodo, opEve);
+  GetItemsFromNode(nodo, opEve, idxIcon);
 end;
 procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //Procesa la etiqueta <Completion>, que es el bloque que define todo el sistema de
@@ -1502,9 +1539,12 @@ var
   tipTok: TSynHighlighterAttributes;
   hayOpen: Boolean;
   tIncAttr: TFaXMLatrib;
-  tLstName: TFaXMLatrib;
+  tLstName, tLstIcnI: TFaXMLatrib;
   defPat: TFaOpenEvent;
   cmpList: TFaCompletionList;
+  idxIcon: integer;
+  tIncIcnI: TFaXMLatrib;
+  IncIcnI: Integer;
 begin
   hayOpen := false;  //inicia bandera
   //crea evento de apertura por defecto
@@ -1516,15 +1556,17 @@ begin
     if UpCAse(nodo2.NodeName)='INCLUDE' then begin  //incluye lista de palabras por atributo
       //lee parámetros
       tIncAttr := ReadXMLParam(nodo2,'Attribute');
-      CheckXMLParams(nodo2, 'Attribute');  //puede generar excepción
+      tIncIcnI := ReadXMLParam(nodo2,'IconIndex');
+      CheckXMLParams(nodo2, 'Attribute IconIndex');  //puede generar excepción
       if tIncAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
         if IsAttributeName(tIncAttr.val)  then begin
           tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+          if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
           //busca los identificadores para agregarlos
           for j:= 0 to high(SpecIdentifiers) do begin
             if SpecIdentifiers[j].tTok = tipTok then begin
-              defPat.AddItem(SpecIdentifiers[j].orig); {Agrega a lista por defecto.}
+              defPat.AddItem(SpecIdentifiers[j].orig, IncIcnI); {Agrega a lista por defecto.}
             end;
           end;
         end else begin  //atributo no existe
@@ -1538,8 +1580,9 @@ begin
     end else if UpCAse(nodo2.NodeName)='LIST' then begin  //forma alternativa para lista de palabras
       //Esta forma de declaración permite definir un orden en la carga de listas
       //lee parámetros
-      tLstName :=  ReadXMLParam(nodo2,'Name');
-      CheckXMLParams(nodo2, 'Name');  //puede generar excepción
+      tLstName := ReadXMLParam(nodo2,'Name');
+      tLstIcnI := ReadXMLParam(nodo2,'IconIndex');
+      CheckXMLParams(nodo2, 'Name IconIndex');  //puede generar excepción
       if not tLstName.hay then begin
         tLstName.val:='#list'+IntToStr(CompletLists.Count);
       end;
@@ -1547,16 +1590,17 @@ begin
       //Ve si tiene contenido
       listIden := nodo2.TextContent;
       if listIden<>'' then begin
-        cmpList.AddItems(listIden);
+        if tLstIcnI.hay then idxIcon := tLstIcnI.n else idxIcon := -1;
+        cmpList.AddItems(listIden, idxIcon);
         {Agrega los ítems de la lista en este patrón, por si se llegase a utilizar. Se
         hace aquí mismo para mantener el orden, si es que se mezcla con etiquetas <INCLUDE>
         o listas de palabras indicadas directamente en <COMPLETION> ... </COMPLETION>}
-        defPat.AddItems(listIden, nil);
+        defPat.AddItems(listIden, idxIcon);
       end;
     end else if nodo2.NodeName='#text' then begin
-      //éste nodo aparece siempre que haya espacios, saltos o tabulaciones
-//      debugln('#text:'+nodo2.NodeValue);
-      defPat.AddItems(nodo2.NodeValue, nil);
+      //Este nodo aparece siempre que haya espacios, saltos o tabulaciones
+      //Puede ser la lista de palabras incluidas directamente en <COMPLETION> </COMPLETION>
+      defPat.AddItems(nodo2.NodeValue, -1);
     end else if LowerCase(nodo2.NodeName) = '#comment' then begin
       //solo para evitar que de mensaje de error
     end else begin
@@ -1804,12 +1848,17 @@ procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
   a la definición de sintaxis, además de otros tipos de tokens.}
   var
     NewWord: String;
+    obj: TObject;
   begin
     if CurrentLines = nil then exit;
     //Reemplaza actual
-    //NewWord := MenuComplet.ItemList[MenuComplet.Position];
-    NewWord := TFaCompletItem(MenuComplet.ItemList.Objects[MenuComplet.Position]).replac;
-    CurOpenPat.DoAction(ed, curEnv, NewWord);   //realiza la acción programada
+    obj := MenuComplet.ItemList.Objects[MenuComplet.Position];
+    if obj=nil then begin
+      //Puede pasar cuando no se ha asignado un objeto, sino solo texto
+    end else begin
+      NewWord := TFaCompletItem(obj).Replac;
+      CurOpenPat.DoAction(ed, curEnv, NewWord);   //realiza la acción programada
+    end;
     CloseCompletionWindow;  //cierra
   end;
 begin
