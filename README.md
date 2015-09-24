@@ -157,6 +157,27 @@ The char "|" is a separator of fields. The structure of fields for the items is:
 
 The Description field is not implemented in this version.
 
+## Using Icons
+
+Icons can be shown in the completion menu. The icons to use must be first loaded in a TImageList control and assigned to the highlighter in the field "IconList":
+
+```
+  hlt.IconList := ImageList1;
+```
+
+Then, we must use the icon index, to select the icon to show in the completion menu. It can be done using the parameter "IconIndex" in a list definition or :
+
+```
+    <List name='MiLista' IconIndex='2'>
+	  ...
+    </List>
+```
+
+The result would be like the following figure:
+
+![SynFacilCompletion](http://blog.pucp.edu.pe/blog/tito/wp-content/uploads/sites/610/2015/09/completion.png "Título de la imagen")
+
+
 ## Defining Opening events
 
 A more advanced definition of the compeltion functionality, can be implemented using Opening events.
@@ -171,6 +192,7 @@ An Opening event is defined using the tag <OpenOn>, like is shown in the followi
   </OpenOn>
 
 ```
+The parameter "IconIndex" can be used in teh tag <OpenOn> too.
 
 The definition of Opening events, can control:
 
