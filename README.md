@@ -182,7 +182,7 @@ The result would be like the following figure:
 
 A more advanced definition of the compeltion functionality, can be implemented using Opening events.
 
-An Opening event is defined using the tag <OpenOn>, like is shown in the following definition:
+An Opening event is defined using the tag "<OpenOn>", like is shown in the following definition:
 
 ```
   <OpenOn AfterPattern='"choose",space' FilterBy="None" Action="Insert">
