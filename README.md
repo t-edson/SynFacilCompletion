@@ -192,7 +192,7 @@ An Opening event is defined using the tag <OpenOn>, like is shown in the followi
   </OpenOn>
 
 ```
-The parameter "IconIndex" can be used in teh tag <OpenOn> too.
+The parameter "IconIndex" can be used in the tag <<OpenOn>> too.
 
 The definition of Opening events, can control:
 
