@@ -60,7 +60,7 @@ begin
 end;
 ```
 
-For to close the window of the completion menu, we must to call to the method:  CloseCompletionWindow().
+To close the window of the completion menu, we must to call to the method:  CloseCompletionWindow().
 
 In the XML file, we must include the list of word to use in the completion menu. This list must be included in the label COMPLETION. 
 
@@ -83,7 +83,7 @@ The next XML file, define three words for the completion menu:
   
 </Language>
 ```
-This is the simpler way for to define a list of words for the completion menu. It will be shown, when a key is pressed, if this option is enabled.
+This is the simpler way to define a list of words for the completion menu. It will be shown, when a key is pressed, if this option is enabled.
 
 There is some parameters to include on the tag <Completion>. They are:
 
