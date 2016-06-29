@@ -1,18 +1,9 @@
 {
-SynFacilCompletion 1.13
+SynFacilCompletion 1.14
 =======================
-Por Tito Hinostroza 4/09/2014
-* Se crea rutina personalizada para dibujar ítems en la ventana de completado.
-* Se agrega el campo "idxIcon" a la clase TFaCompletItem, para indica el ícono del ítem.
-* Se crea la propiedad "IconList" en el resaltador para poder configurar los íconos.
-* Se habilita el dibujo de íconos en el menú de completado.
-* Se elimina el método TFaCompletItem.Extract y se crea la propiedad TFaCompletItem.Caption.
-* Se corrigió un error producido cuando la lista de completado, contenía un solo ítem
-y uno en blanco. Si se selecionaba el ítem en blanco, generaba un error en tiempo de
-ejecución.
-* Desaparece TFaOpenEvent.DoDefaultAction y se agrega funcionalidades a TFaCursorEnviron,
-para realizar el reemplazo de texto.
-* Se implementa la funcionalidad de posicionamiento del cursor, después del reemplazo.
+Por Tito Hinostroza 27/06/2016
+* Se agrega la función de conversión AnsiString(), para forzar la conversión de las
+cadenas WideString que vienen con FPC 3.0.
 
 Pendientes:
 * Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificsr
@@ -27,10 +18,7 @@ mucho en un identificador.
 * Realizar dos pasadas en la etiqueta <completion>, para que se puedan definir las listas
 en cualquier parte.
 
-En esta versión se corrigen algunos errores de la versión 1.12, y se hace un reordenamiento de
-algunas rutinas y objetos de la librearía.
-Los cambios más notables, son que ahora se puede mostrar íconos en la lista de completado
-y se puede controlar la posición con que se deja al cursor, después del reemplazo.
+En esta versión solo se actualiza el código para trabajr mejor con la versión FPC 3.0
 Se mantienen todas las funcionalidades y la compatibilidad, con las versiones anteriores.
 }
 {Descripción
@@ -253,8 +241,8 @@ type
   TFaOpenEvents = specialize TFPGObjectList<TFaOpenEvent>;
 
 type
-  //clase personalizada para el completado
   { TSynCompletionF }
+  {Clase personalizada de "TSynCompletion" usada para el completado con "TSynFacilComplet"}
   TSynCompletionF = class(TSynCompletion)
     function OnSynCompletionPaintItem(const AKey: string; ACanvas: TCanvas; X,
       Y: integer; IsSelected: boolean; Index: integer): boolean;
@@ -377,7 +365,7 @@ begin
     for i:= 0 to doc.DocumentElement.Attributes.Length-1 do begin
       atri := doc.DocumentElement.Attributes.Item[i];
       if UpCase(atri.NodeName) = 'EXT' then begin
-        Result := trim(atri.NodeValue);  //valor sin espacios
+        Result := trim(AnsiString(atri.NodeValue));  //valor sin espacios
       end;
     end;
     doc.Free;  //libera
@@ -1276,7 +1264,7 @@ function TSynCompletionF.OnSynCompletionPaintItem(const AKey: string;
   ACanvas: TCanvas; X, Y: integer; IsSelected: boolean; Index: integer): boolean;
 var
 //  MaxX: Integer;
-  hl: TSynCustomHighlighter;
+//  hl: TSynCustomHighlighter;
   Capt: String;
   idIcon: Integer;
   obj: TObject;
@@ -1288,9 +1276,9 @@ begin
   else
     ACanvas.Font.Color := FActiveEditSelectedFGColor;
   MaxX:=TheForm.ClientWidth;}
-  hl := nil;
+{  hl := nil;
   if Editor <> nil then
-    hl := Editor.Highlighter;
+    hl := Editor.Highlighter;}
   Capt := ItemList[Index];
   if IconList<>nil then begin
     obj := ItemList.Objects[Index];
@@ -1414,7 +1402,7 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
     listIden := nodo.TextContent;
     if listIden<>'' then begin
       //Se ha especificado lista de palabras. Los carga
-      opEve.AddItems(listIden, idxIcon);
+      opEve.AddItems(AnsiString(listIden), idxIcon);
     end;
     //explora nodos
     for i := 0 to nodo.ChildNodes.Count-1 do begin
@@ -1588,7 +1576,7 @@ begin
       end;
       cmpList := AddComplList(tLstName.val);
       //Ve si tiene contenido
-      listIden := nodo2.TextContent;
+      listIden := AnsiString(nodo2.TextContent);
       if listIden<>'' then begin
         if tLstIcnI.hay then idxIcon := tLstIcnI.n else idxIcon := -1;
         cmpList.AddItems(listIden, idxIcon);
@@ -1600,7 +1588,7 @@ begin
     end else if nodo2.NodeName='#text' then begin
       //Este nodo aparece siempre que haya espacios, saltos o tabulaciones
       //Puede ser la lista de palabras incluidas directamente en <COMPLETION> </COMPLETION>
-      defPat.AddItems(nodo2.NodeValue, -1);
+      defPat.AddItems(AnsiString(nodo2.NodeValue), -1);
     end else if LowerCase(nodo2.NodeName) = '#comment' then begin
       //solo para evitar que de mensaje de error
     end else begin
