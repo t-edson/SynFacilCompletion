@@ -77,12 +77,12 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..;..\..\SynFacilSyn 1.11"/>
+      <OtherUnitFiles Value="..;..\..\SynFacilSyn 1.16"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Other>
       <CompilerMessages>
-        <IgnoredMessages idx5057="True"/>
+        <IgnoredMessages idx5057="True" idx5024="True"/>
       </CompilerMessages>
     </Other>
   </CompilerOptions>
