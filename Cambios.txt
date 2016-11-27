@@ -1,0 +1,22 @@
+1.15
+====
+Se cambia de nombre al método OnExecute por MenuComplet_OnExecute, para evitar confundir 
+al manejador con el evento, y se define como virtual.
+Se hace público OpenCompletionWindow().
+Se mueve la función anidada FilterByChar() con alcane público para que pueda servir desde
+fuera de la clase.
+Se crea el evento TFaOpenEvent.OnLoadItems, para permitir realizar la carga dinámica de 
+ítems en la lista de completado.
+Se cambia de nombre al campo OpenPatterns por OpenEvents y se hace público.
+Se cambia de nombre al campo CurOpenPat por CurOpenEve y se hace público.
+Se crea la función FindOpenEvent().
+Se crea el método TFaOpenEvent.AddAvail().
+
+1.14
+====
+* Se agrega la función de conversión AnsiString(), para forzar la conversión de las
+cadenas WideString que vienen con FPC 3.0.
+
+
+En esta versión solo se actualiza el código para trabajar mejor con la versión FPC 3.0
+Se mantienen todas las funcionalidades y la compatibilidad, con las versiones anteriores.

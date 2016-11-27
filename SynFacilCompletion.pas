@@ -1,12 +1,10 @@
 {
-SynFacilCompletion 1.14
+SynFacilCompletion 1.15
 =======================
-Por Tito Hinostroza 27/06/2016
-* Se agrega la función de conversión AnsiString(), para forzar la conversión de las
-cadenas WideString que vienen con FPC 3.0.
+Por Tito Hinostroza
 
 Pendientes:
-* Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificsr
+* Incluir una forma simplficada de la forma <OpenOn AfterIdentif="Alter">, para simplificar
 la definición clásica.
 * Ver el trabajo de la librería con caracteres UTF-8 de dos bytes.
 * Optimizar el método LookAround(), evitando tener que leer dos veces la línea actual
@@ -17,9 +15,6 @@ funciones.
 mucho en un identificador.
 * Realizar dos pasadas en la etiqueta <completion>, para que se puedan definir las listas
 en cualquier parte.
-
-En esta versión solo se actualiza el código para trabajr mejor con la versión FPC 3.0
-Se mantienen todas las funcionalidades y la compatibilidad, con las versiones anteriores.
 }
 {Descripción
 ============
@@ -65,7 +60,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-{$define Verbose}
+//{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
@@ -180,6 +175,7 @@ type
     constructor Create(hlt0: TSynFacilSyn);
   end;
 
+  TFaOnLoadItems = procedure(curEnv: TFaCursorEnviron; var Cancel: boolean) of object;
   //Acciones válidas que se realizarán al seleccionar un ítem
   TFAPatAction = (
     pac_None,       //no se realiza ninguna acción
@@ -191,16 +187,12 @@ type
   { TFaOpenEvent }
   TFaOpenEvent = class
   private
-    hlt: TSynFacilSyn;  //refrencia al resaltador que lo contiene
-    Items : TFaCompletItems;    //Lista de las palabras disponibles para el completado
-    Avails: TFaCompletItems;    //Ítems a cargar cuando se active el patrón.
-    Lists : TFaCompletionLists; //Referencias a listas
-    {Los índices de elem [] representan posiciones relativas de tokens
+    hlt: TSynFacilSyn;  //referencia al resaltador que lo contiene
+    {Los índices de elem[] representan posiciones relativas de tokens
       [0]  -> Token que está justo después del cursor (token actual)
       [-1] -> Token que está antes del token actual
       [-2] -> Token que está antes del token [-1]
-      [-3]  -> Token que está antes del token [-2])
-    }
+      [-3] -> Token que está antes del token [-2]    }
     elem : array[-3..0] of TFaPatternElement;
     nBef : integer;   //número de elementos válidos haste el ítem 0 (puede ser 0,1,2 o 3)
     nAft : integer;   //número de elementos válidos depués del ítem 0 (puede ser 0 o 1)
@@ -216,22 +208,29 @@ type
     name  : string;    //nombre del evento de apertura
     startX: integer;   //posición inicial del token o identificador de trabajo
     filter: TFaFilterList;
-    block : TFaSynBlock;  //bloque donde es válido
+    block : TFaSynBlock;   //bloque donde es válido
     Action: TFAPatAction;  //Acción al seleccionar lista
+    OnLoadItems: TFaOnLoadItems; //Se llama antes de cargar los ítems.
+    procedure FilterByChar(curEnv: TFaCursorEnviron; const c: char);
     procedure DoAction(ed: TSynEdit; env: TFaCursorEnviron; ReplaceSeq: string);
     procedure FillFilteredIn(const env: TFaCursorEnviron; lst: TStrings); //Llena Items en una lista
     //manejo patrones
     procedure ClearBeforePatt;  //limpia el patron anterior
-    procedure ClearAfterPatt;  //limpia el patron anterior
+    procedure ClearAfterPatt;   //limpia el patron anterior
     procedure AddBeforeElement(var befPat: string; var ErrStr: string);
     procedure AddAfterElement(var aftPat: string; var ErrStr: string);
-    //manejo de ítems
-    procedure LoadItems(const curEnv: TFaCursorEnviron);
+  public   //Manejo de ítems
+    Items : TFaCompletItems;    //Lista de las palabras disponibles para el completado
+    Lists : TFaCompletionLists; //Referencias a listas
+    Avails: TFaCompletItems;  //Ítems a cargar cuando se active el patrón.
+    procedure ClearItems;
+    procedure LoadItems(curEnv: TFaCursorEnviron);
     procedure AddItem(txt: string; idxIcon: integer);
     procedure AddItems(lst: TStringList; idxIcon: integer);
     procedure AddItems(list: string; idxIcon: integer);
     procedure AddList(Alist: TFaCompletionList; OnlyRef: boolean);
-    procedure ClearItems;
+    procedure ClearAvails;
+    procedure AddAvail(txt: string);  //Rutina simple para agregar cadena a Avails
   public
     constructor Create(hlt0: TSynFacilSyn);
     destructor Destroy; override;
@@ -259,30 +258,31 @@ type
       Shift: TShiftState);
     procedure OnCodeCompletion(var Value: string; SourceValue: string;
       var SourceStart, SourceEnd: TPoint; KeyChar: TUTF8Char; Shift: TShiftState);
-    procedure OnExecute(Sender: TObject);
     procedure FormUTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
   protected
     ed        : TSynEdit;        //referencia interna al editor
     MenuComplet: TSynCompletionF;//menú contextual
-    curEnv   : TFaCursorEnviron;  //entorno del cursor
+    curEnv    : TFaCursorEnviron;  //entorno del cursor
 
     utKey         : TUTF8Char;     //tecla pulsada
     vKey          : word;          //código de tecla virtual
     vShift        : TShiftState;   //estado de shift
     SpecIdentifiers: TArrayTokSpec;
     SearchOnKeyUp : boolean;       //bandera de control
+    procedure MenuComplet_OnExecute(Sender: TObject); virtual;
     function CheckForClose: boolean;
     procedure FillCompletMenuFiltered;
-    procedure OpenCompletionWindow;
     procedure ProcCompletionLabel(nodo: TDOMNode);
     procedure ReadSpecialIdentif;
-  private  //manejo de patrones de apertura
-    OpenPatterns: TFaOpenEvents; //lista de patrones de apertura
-    CurOpenPat  : TFaOpenEvent;    //evento de apertura que se aplica en el momento
+  private  //Manejo de patrones de apertura
     CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     function FindOpenEventMatching: TFaOpenEvent;
     procedure ProcXMLOpenOn(nodo: TDOMNode);
     procedure SetIconList(AValue: TImageList);
+  public   //Manejo de patrones de apertura
+    OpenEvents  : TFaOpenEvents;   //lista de eventos de apertura
+    CurOpenEve  : TFaOpenEvent;    //evento de apertura que se aplica en el momento
+    function FindOpenEvent(oeName: string): TFaOpenEvent;  //Busca un evento de apertura
   public
     CompletionOn: boolean;  //activa o desactiva el auto-completado
     SelectOnEnter: boolean; //habilita la selección con enter
@@ -300,8 +300,9 @@ type
     procedure UnSelectEditor;  //termina la ayuda contextual con el editor
     procedure UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
     procedure KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure OpenCompletionWindow;
     procedure CloseCompletionWindow;
-  public
+  public  //Constructor y Destructor
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   end;
@@ -1035,48 +1036,66 @@ begin
   elem[-1].patKind := pak_none;
   Inc(nBef);  //actualiza elementos anteriores válidos
 end;
+procedure TFaOpenEvent.AddAvail(txt: string);
+{Agrega un ítem a la lista Avails[]}
+var
+  it: TFaCompletItem;
+begin
+  it := TFaCompletItem.Create;
+  it.Caption:=txt;
+  it.Replac:=txt;
+  it.idxIcon:=-1;
+  Avails.Add(it);
+end;
 //manejo de ítems
-procedure TFaOpenEvent.LoadItems(const curEnv: TFaCursorEnviron);
-{Carga todos los ítems con los que se va a trabajar en Avails[]. Los que se usarán para
- posteriormente filtrarse y cargarse al menú de completado.}
-  procedure FilterByChar(const c: char);
-  {Filtra la lista Items[], usando un caracter}
-  var
-    it: TFaCompletItem;
-    lst: TFaCompletionList;
-    cu: Char;
-  begin
-    Avails.Clear;
-    if curEnv.caseSen then begin
-      for it in Items do begin
-        if it.StartWith(c) then Avails.Add(it);  //copia las referencias
-      end;
-      //copia ítens de las listas
-      for lst in Lists do begin
-        for it in lst.Items do begin
-          if it.StartWith(c) then Avails.Add(it);  //copia las referencias
-        end;
-      end;
-    end else begin
-      cu := UpCase(c);
-      for it in Items do begin
-        if it.StartWithU(cu) then Avails.Add(it);  //copia las referencias
-      end;
-      //copia ítens de las listas
-      for lst in Lists do begin
-        for it in lst.Items do begin
-          if it.StartWithU(cu) then Avails.Add(it);  //copia las referencias
-        end;
-      end;
-    end;
-  end;
+procedure TFaOpenEvent.FilterByChar(curEnv: TFaCursorEnviron; const c: char);
+{Filtra la lista Items[], usando un caracter. Se define como público, para poder usarla
+como utilidad, si es que se necesita.}
 var
   it: TFaCompletItem;
   lst: TFaCompletionList;
+  cu: Char;
 begin
+  Avails.Clear;
+  if curEnv.caseSen then begin
+    for it in Items do begin
+      if it.StartWith(c) then Avails.Add(it);  //copia las referencias
+    end;
+    //copia ítens de las listas
+    for lst in Lists do begin
+      for it in lst.Items do begin
+        if it.StartWith(c) then Avails.Add(it);  //copia las referencias
+      end;
+    end;
+  end else begin
+    cu := UpCase(c);
+    for it in Items do begin
+      if it.StartWithU(cu) then Avails.Add(it);  //copia las referencias
+    end;
+    //copia ítens de las listas
+    for lst in Lists do begin
+      for it in lst.Items do begin
+        if it.StartWithU(cu) then Avails.Add(it);  //copia las referencias
+      end;
+    end;
+  end;
+end;
+procedure TFaOpenEvent.LoadItems(curEnv: TFaCursorEnviron);
+{Carga todos los ítems con los que se va a trabajar en Avails[]. Los que se usarán para
+ posteriormente filtrarse y cargarse al menú de completado.}
+var
+  it: TFaCompletItem;
+  lst: TFaCompletionList;
+  Cancel: boolean;
+begin
+  if OnLoadItems<>nil then begin
+     OnLoadItems(curEnv, Cancel);
+     if Cancel then exit;
+  end;
   case filter of
   fil_None: begin  //no hay filtro
-    Avails.Assign(Items);  //copia todas las referecnias
+    Avails.Assign(Items);  //copia todas las referencias
+    //Agrega, también las referencias de las listas que pueda contener.
     for lst in Lists do begin
       for it in lst.Items do begin
         Avails.Add(it);  //copia las referencias
@@ -1089,15 +1108,15 @@ begin
     if curEnv.HaveLastTok then begin
       //hay un token anterior
       startX := curEnv.tok_1^.posIni;   //inicio del token
-      FilterByChar(curEnv.LastTok[1]);   //primer caracter como filtro (peor caso)
+      FilterByChar(curEnv, curEnv.LastTok[1]);   //primer caracter como filtro (peor caso)
     end;
   end;
   fil_LastIdent,
   fil_LastIdentPart: begin    //se usará el último identif.
     if curEnv.HaveLastIdent then begin
       //hay un token anterior
-      startX := curEnv.StartIdentif;   //es fácil sacra el inicio del identificador
-      FilterByChar(curEnv.LastIdentPart[1]);  //primer caracter como filtro (peor caso)
+      startX := curEnv.StartIdentif;   //es fácil sacar el inicio del identificador
+      FilterByChar(curEnv, curEnv.LastIdentPart[1]);  //primer caracter como filtro (peor caso)
     end;
   end;
   else   //no debería pasar
@@ -1239,6 +1258,10 @@ begin
 //      Items.Add(it);
 //    end;
   end;
+end;
+procedure TFaOpenEvent.ClearAvails;
+begin
+  Avails.Clear;
 end;
 procedure TFaOpenEvent.ClearItems;
 begin
@@ -1386,6 +1409,15 @@ begin
 //  if FIconList=AValue then Exit;
   MenuComplet.IconList := AValue;
 end;
+function TSynFacilComplet.FindOpenEvent(oeName: string): TFaOpenEvent;
+var
+  eve: TFaOpenEvent;
+begin
+  for eve in OpenEvents do begin
+    if eve.name = oeName then exit(eve);
+  end;
+  exit(nil);
+end;
 procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
 {Procesa el bloque <OpenOn ... >}
   procedure GetItemsFromNode(nodo: TDOMNode; opEve: TFaOpenEvent; idxIcon: integer);
@@ -1487,7 +1519,7 @@ begin
   if tNamPatt.hay then begin  //se especificó nombre
     opEve.name := tNamPatt.val;
   end else begin  //se asuem un ombre por defecto
-    opEve.name := '#Pat' + IntToStr(OpenPatterns.Count);
+    opEve.name := '#Pat' + IntToStr(OpenEvents.Count);
   end;
   //configura bloque
   if tBlkPatt.hay then begin
@@ -1598,7 +1630,7 @@ begin
   //verifica las opciones por defecto
   if hayOpen then begin
     //Se ha especificado patrones de apretura.
-    OpenPatterns.Remove(defPat);  //elimina el evento por defecto, porque no se va a usar
+    OpenEvents.Remove(defPat);  //elimina el evento por defecto, porque no se va a usar
   end else begin
     //No se ha especificado ningún evento de apertura
     //mantiene el evento por defecto
@@ -1618,7 +1650,7 @@ begin
                                 incluye el nombre del archivo}
   OpenOnKeyUp := true;     //por defecto
   ReadSpecialIdentif;      //carga los identificadores especiales
-  OpenPatterns.Clear;      //limpia patrones de apertura
+  OpenEvents.Clear;      //limpia patrones de apertura
   CompletLists.Clear;
   try
     ReadXMLFile(doc, Arc);  //carga archivo
@@ -1667,7 +1699,7 @@ begin
   MenuComplet:=TSynCompletionF.Create(ed.Owner);   //crea menú contextual en el formulario
   MenuComplet.Editor:=ed;     //asigna editor
   MenuComplet.Width:=200;     //ancho inicial
-  MenuComplet.OnExecute:=@OnExecute;
+  MenuComplet.OnExecute:=@MenuComplet_OnExecute;
   MenuComplet.OnCodeCompletion:=@OnCodeCompletion;
   //iintercepta eventos de teclado, para cambiar comportamiento
   MenuComplet.OnKeyDown:=@FormKeyDown;
@@ -1691,11 +1723,11 @@ begin
   opEve := FindOpenEventMatching;    //Busca evento de apertura que aplica
   if opEve = nil then begin
     MenuComplet.Deactivate;
-    CurOpenPat := nil;  //como se cierra ya no hay evento activo
+    CurOpenEve := nil;  //como se cierra ya no hay evento activo
     exit(true);  //ninguno aplica
   end;
   //hay un aptrón que aplica
-  if opEve=CurOpenPat then begin
+  if opEve=CurOpenEve then begin
     //Es el mismo
     exit(false);
   end else begin
@@ -1703,8 +1735,8 @@ begin
     {Aquí se puede decidir cerrar la ventana, porque aplica otro patrón, pero yo prefiero
      el comportamiento en el que se aplica direcatamente el nuevo patrón, sin necesidad de
      esperar a pulsar otra tecla.}
-    CurOpenPat := opEve;   //actualiza referencia
-    CurOpenPat.LoadItems(curEnv);  //carga ítems
+    CurOpenEve := opEve;   //actualiza referencia
+    CurOpenEve.LoadItems(curEnv);  //carga ítems
     exit(false);
   end;
 end;
@@ -1739,7 +1771,7 @@ begin
   opEve.filter := filter;     //fija filtro
   opEve.block := nil;
   opEve.Action := pac_Default;  //acción por defecto
-  OpenPatterns.Add(opEve);   //agrega
+  OpenEvents.Add(opEve);   //agrega
   Result := opEve;  //devuelve referencia
 end;
 function TSynFacilComplet.AddComplList(lstName: string): TFaCompletionList;
@@ -1780,7 +1812,7 @@ devuelve NIL.}
 var
   opEve: TFaOpenEvent;
 begin
-  for opEve in OpenPatterns do begin
+  for opEve in OpenEvents do begin
     if opEve.MatchPattern(curEnv) then begin
       Result := opEve;   //devuelve referencia
       exit;
@@ -1788,7 +1820,7 @@ begin
   end;
   exit(nil);   //no enccontró
 end;
-procedure TSynFacilComplet.OnExecute(Sender: TObject);
+procedure TSynFacilComplet.MenuComplet_OnExecute(Sender: TObject);
 //Este evento se genera antes de abrir el menú de completado.
 //Llena la lista "AvailItems", con los ítems que correspondan de acuerdo a la posición
 //actual del cursor y de la configuración del archivo XML.
@@ -1798,6 +1830,7 @@ var
 begin
   MenuComplet.ItemList.Clear;   //inicia menú
   //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
+  { TODO : Tal vez esta verifiación debería hacerse en el mismo TSynFacilComplet.KeyUp(), para dejar esta parte del código más limpio}
   if MenuComplet.CurrentString='<KeyUp>' then begin
 //    debugln('OnExecute: Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
     if (vKey in [VK_BACK, VK_TAB] ) and (vShift=[]) then begin
@@ -1809,15 +1842,17 @@ begin
       exit;
     end;
   end;
+
   //Prepara para llenar la lista de completado
   curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
-  CurOpenPat := nil;
+  CurOpenEve := nil;
   opEve := FindOpenEventMatching;    //Busca evento de apertura que aplica
   if opEve<>nil then begin
     //Se cumple el evento en la posición actual del cursor
-    opEve.LoadItems(curEnv);   //carga los ítems con los que trabajará.
-    CurOpenPat := opEve;   //guarda referencia
+    opEve.LoadItems(curEnv);  //carga los ítems con los que trabajará.
+    CurOpenEve := opEve;    //guarda referencia
   end;
+  //Llena el menú de completado
   FillCompletMenuFiltered;  //hace el primer filtrado
 
 //Después de llenar la lista, se puede ver si tiene o no elementos
@@ -1845,7 +1880,7 @@ procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
       //Puede pasar cuando no se ha asignado un objeto, sino solo texto
     end else begin
       NewWord := TFaCompletItem(obj).Replac;
-      CurOpenPat.DoAction(ed, curEnv, NewWord);   //realiza la acción programada
+      CurOpenEve.DoAction(ed, curEnv, NewWord);   //realiza la acción programada
     end;
     CloseCompletionWindow;  //cierra
   end;
@@ -1992,11 +2027,11 @@ begin
   end;
   if ed = NIL then exit;     //no hay editor
   if ed.SelectionMode <> smNormal then exit;  //para no interferir en modo columna
-  //captura las teclas pulsadas y llama a OnExecute(), para ver si correspodne mostrar
+  //captura las teclas pulsadas y llama a MenuComplet_OnExecute(), para ver si correspodne mostrar
   //la ventana de completado
   vKey := Key;   //guarda
   vShift := Shift;
-  //Dispara evento OnExecute con el valor de "vKey", "vShift" y "utKey" actualizados
+  //Dispara evento MenuComplet_OnExecute con el valor de "vKey", "vShift" y "utKey" actualizados
   OpenCompletionWindow;  //solo se mostrará si hay ítems
   vKey := 0;
   vShift := [];  //limpia
@@ -2004,15 +2039,15 @@ begin
   SearchOnKeyUp := true;  //limpia bandera
 End;
 procedure TSynFacilComplet.FillCompletMenuFiltered;
-//Llena el menú de completado a partir de "AvailItems", filtrando solo las
-//palabras que coincidan con "str"
+{Llena el menú de completado a partir de "AvailItems", aplicando el filtro de "CurOpenEve"
+}
 begin
   //Genera la lista que coincide
   { Este proceso puede ser lento si se actualizan muchas opciones en la lista }
   MenuComplet.ItemList.Clear;  {Limpia todo aquí porque este método es llamado desde distintos
                                 puntos del programa.}
-  if CurOpenPat <> nil then begin
-    CurOpenPat.FillFilteredIn(curEnv, MenuComplet.ItemList);
+  if CurOpenEve <> nil then begin
+    CurOpenEve.FillFilteredIn(curEnv, MenuComplet.ItemList);
   end;
   MenuComplet.Refresh;
 end;
@@ -2036,7 +2071,7 @@ constructor TSynFacilComplet.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   curEnv   := TFaCursorEnviron.Create(self);
-  OpenPatterns := TFaOpenEvents.Create(True);
+  OpenEvents := TFaOpenEvents.Create(True);
   CompletLists := TFaCompletionLists.Create(true);
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
@@ -2049,7 +2084,7 @@ destructor TSynFacilComplet.Destroy;
 begin
   if MenuComplet<>nil then MenuComplet.Destroy;  //por si no lo liberaron
   CompletLists.Destroy;
-  OpenPatterns.Destroy;
+  OpenEvents.Destroy;
   curEnv.Destroy;
   inherited Destroy;
 end;
