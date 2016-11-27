@@ -180,7 +180,7 @@ The result would be like the following figure:
 
 ## Defining Opening events
 
-A more advanced definition of the compeltion functionality, can be implemented using Opening events.
+A more advanced definition of the completion functionality, can be implemented using Opening events.
 
 An Opening event is defined using the tag <<OpenOn>>, like is shown in the following definition:
 
@@ -203,3 +203,42 @@ The definition of Opening events, can control:
 
 For more information, check the documentation.
 
+## Configuring completion by code
+
+In addition to the XML file, the highlighter can be configured in the program.
+
+All the completion are defined using Openning-events. To implement a completion, it's needed, at least, one object Oppening-event. All the oppening-events are stored in the list OpenEvents[], in the highlighter.
+
+By default, the highlighter creates an openning-event when laoding an XML syntax file. So to access to it, we can access to OpenEvents[0].
+
+The next code, shows how a completion list is created, only using code:
+
+```
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  //configure highlighters
+  hlt1 := TSynFacilComplet.Create(self);  //my highlighter
+  //  ...
+  //Here the syntax is defined
+  // ...
+  hlt1.Rebuild;
+  hlt1.SelectEditor(ed1);
+  //Create an Oppening-event
+  oev :=  hlt1.AddOpenEvent('Identifier', '', fil_LastTokPart);
+  //Define the completion list
+  oev.AddItem('aaa',-1);
+  oev.AddItem('abb',-1);
+  oev.AddItem('acc',-1);
+end;
+```
+The AddItem() method let us, to add new words to the completion list.
+
+For more information, check the documentation.
+ 
+## Filling dinamically the completion List
+
+It's possible to fill dynamically the completion list, before shown in the editor. To do that, it is necessary to use de event OnLoadItems, and it need to be done entirely by code.
+
+
+
+ 
