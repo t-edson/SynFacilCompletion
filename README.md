@@ -203,6 +203,24 @@ The definition of Opening events, can control:
 
 For more information, check the documentation.
 
+## Positioning the cursor
+
+The cursor can be positioned, after selecting an item of the completion list.
+
+To do this, we need to use the escape sequence "\_".
+
+The following code, shows how to leave the cursor between parentheses, after replacing the text:
+
+```
+  <Completion>
+    <OpenOn>
+       My_function(\_)
+    </OpenOn>
+    ...
+```
+
+For more information, check the documentation.
+
 ## Configuring completion by code
 
 In addition to the XML file, the highlighter can be configured in the program.
