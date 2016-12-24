@@ -11,6 +11,7 @@ Se cambia de nombre al campo OpenPatterns por OpenEvents y se hace público.
 Se cambia de nombre al campo CurOpenPat por CurOpenEve y se hace público.
 Se crea la función FindOpenEvent().
 Se crea el método TFaOpenEvent.AddAvail().
+Se mejora el mensaje de error, cuando no se encuentra listas.
 
 1.14
 ====

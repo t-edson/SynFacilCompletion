@@ -330,7 +330,7 @@ const
 //  ERR_PAR_BEF_PATT = 'Error en "AfterPattern"';
 
   ERR_ATTRIB_NO_EXIST = 'Attribute %s doesn''t exist. (label <OpenOn ...>)';
-  ERR_LIST_NO_EXIST = 'List %s doesn''t exist. (label <OpenOn ...>)';
+  ERR_LIST_NO_EXIST = 'List "%s" doesn''t exist. (label <OpenOn ...>)';
   ERR_FILTER_NO_EXIST = 'Filter %s doesn''t exist. (label <OpenOn ...>)';
   ERR_ACTION_NO_EXIST = 'Action %s doesn''t exist. (label <OpenOn ...>)';
   ERR_INVAL_LAB_OPNON = 'Invalid label %s for <OpenOn ...>';
@@ -1466,7 +1466,7 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
           if lst<>nil then begin
             opEve.AddList(lst, true);
           end else begin
-            raise ESynFacilSyn.Create(Format(ERR_LIST_NO_EXIST,[nodo2.NodeValue]));
+            raise ESynFacilSyn.Create(Format(ERR_LIST_NO_EXIST,[tIncList.val]));
           end;
         end;
       end else if nodo2.NodeName='#text' then begin
@@ -2090,4 +2090,3 @@ begin
 end;
 
 end.
-
