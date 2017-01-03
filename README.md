@@ -66,7 +66,7 @@ In the XML file, we must include the list of word to use in the completion menu.
 
 ## Defining the list of words for completion
 
-The list of words for compeltion, is defined in the same XML where the syntax is defined.
+The list of words for completion, is defined in the same XML where the syntax is defined.
 
 The next XML file, define three words for the completion menu:
 
@@ -91,6 +91,23 @@ There is some parameters to include on the tag <Completion>. They are:
 * OpenOnKeyUp -> Enabled if the completion menu is shown when a Key is pressed (released). It's enabled by default.
 * SelectOnEnter -> Let to select a word of the completion menu, using the <enter> key.
 
+Including, directly, the words into the tags <completion>, is a simple way, but not the formal way. It's better to use the tag <OpenOn>:
+
+```
+<?xml version="1.0"?>
+<Language name="Pascal" ext="pas">
+  <completion>
+    <OpenOn>
+      var
+      procedure
+      function 
+    </OpenOn>
+  </completion>
+  
+  ...
+  
+</Language>
+```
 
 ## Using all the Keywords for completion
 
@@ -100,13 +117,14 @@ It's possible to use too, the list of Keywords (or another group) like words for
 <?xml version="1.0"?>
 <Language name="Pascal" ext="pas">
   <Completion> 
-    <Include Attribute="Keyword"></Include>
+    <OpenOn >
+      <Include Attribute="Keyword"></Include>
+    </OpenOn>
   </Completion>
+  
   <Identifiers>
     <Keyword>
-    var
-    procedure
-    function 
+    var     procedure     function 
     </Keyword>
   </Identifiers>
 </Language>
@@ -120,12 +138,18 @@ The words for completion, can be grouped on list using the tag <LIST>, like in t
 
 ```
 <Language>
-  <Completion OpenOnKeyUp="false">
-  <List Name="MyList"> foo bar foobar
-  </List>
+  <Completion>
 
-  <List Name="MyList2"> foo2 bar2 foobar2
-  </List>
+    <List Name="MyList"> foo bar foobar
+    </List>
+
+    <List Name="MyList2"> foo2 bar2 foobar2
+    </List>
+
+    <OpenOn>
+       <Include list="MyList"></Include>
+       <Include list="MyList2"></Include>
+    </OpenOn>
 
   </Completion>
   ...
@@ -133,7 +157,7 @@ The words for completion, can be grouped on list using the tag <LIST>, like in t
 </Language>
 ```
 
-Having lists in this way, make easy to classify the total words for completion, and can be reused when using advanced definitions.
+Having lists in this way, make easy to classify the total words for completion, and can be reused when using several Opening Events.
 
 ## Replacing a different word
 
@@ -257,6 +281,17 @@ For more information, check the documentation.
 
 It's possible to fill dynamically the completion list, before shown in the editor. To do that, it is necessary to use de event OnLoadItems, and it need to be done entirely by code.
 
+On simple code to manage the event onLoadItems, could be:
 
-
+```
+procedure TForm1.opEveLoadItems(curEnv: TFaCursorEnviron; var Cancel: boolean);
+begin
+  //Fills the completion list 
+  opEve.ClearAvails;
+  opEve.AddAvail('alfa');
+  opEve.AddAvail('beta');
+  ...
+  Cancel := true;
+end;
+```
  
