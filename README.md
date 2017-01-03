@@ -89,7 +89,7 @@ There is some parameters to include on the tag <Completion>. They are:
 
 * CaseSensitive -> True or false. Define if the completion function use or not the case of the text to work.
 * OpenOnKeyUp -> Enabled if the completion menu is shown when a Key is pressed (released). It's enabled by default.
-* SelectOnEnter -> Let to select a word of the completion menu, using the <enter> key.
+* SelectOnEnter -> Let to select a word of the completion menu, using the \<enter> key.
 
 Including, directly, the words into the tags <completion>, is a simple way, but not the formal way. It's better to use the tag <OpenOn>:
 
