@@ -91,7 +91,7 @@ There is some parameters to include on the tag <Completion>. They are:
 * OpenOnKeyUp -> Enabled if the completion menu is shown when a Key is pressed (released). It's enabled by default.
 * SelectOnEnter -> Let to select a word of the completion menu, using the \<enter> key.
 
-Including, directly, the words into the tags <completion>, is a simple way, but not the formal way. It's better to use the tag <OpenOn>:
+Including, directly, the words into the tags \<completion>, is a simple way, but not the formal way. It's better to use the tag \<OpenOn>:
 
 ```
 <?xml version="1.0"?>
@@ -134,7 +134,7 @@ In this way, we avoid to repeat all the list of keywords again.
 
 ## Using list of words for completion
 
-The words for completion, can be grouped on list using the tag <LIST>, like in the following definition:
+The words for completion, can be grouped on list using the tag \<LIST>, like in the following definition:
 
 ```
 <Language>
@@ -206,7 +206,7 @@ The result would be like the following figure:
 
 A more advanced definition of the completion functionality, can be implemented using Opening events.
 
-An Opening event is defined using the tag <<OpenOn>>, like is shown in the following definition:
+An Opening event is defined using the tag \<OpenOn>, like is shown in the following definition:
 
 ```
   <OpenOn AfterPattern='"choose",space' FilterBy="None" Action="Insert">
