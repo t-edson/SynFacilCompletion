@@ -60,7 +60,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-//{$define Verbose}
+{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
@@ -1835,7 +1835,7 @@ begin
 //    debugln('OnExecute: Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
     if (vKey in [VK_BACK, VK_TAB] ) and (vShift=[]) then begin
       //esta tecla es válida
-    end else if (utKey<>'') and (utKey[1] in [#8,#9,' '..'@','A'..'Z','a'..'z']) then begin
+    end else if (utKey<>'') and (utKey[1] in [#8,#9,' '..'@','A'..'z']) then begin
       //esta tecla es válida
     end else begin
       //los otros casos no se consideran que deban explorarse
