@@ -1,4 +1,4 @@
-SynFacilCompletion 1.15
+SynFacilCompletion 1.17
 =======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 

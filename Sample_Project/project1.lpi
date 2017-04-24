@@ -62,7 +62,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="..;..\..\SynFacilSyn 1.16"/>
+      <OtherUnitFiles Value="..;..\..\SynFacilSyn-1.17"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Other>
