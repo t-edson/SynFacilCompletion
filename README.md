@@ -1,4 +1,4 @@
-SynFacilCompletion 1.17
+SynFacilCompletion 1.18
 =======================
 
 Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus. 
@@ -15,8 +15,8 @@ In the XML file, it's added the label "COMPLETION" for defining a list of words 
 
 There are 3 units to include when using this library:
 
-* SynFacilBasic.pas  (version 1.1 or higher)
-* SynFacilHighlighter.pas  (version 1.1 or higher)
+* SynFacilBasic.pas  (version 1.18 or higher)
+* SynFacilHighlighter.pas  (version 1.18 or higher)
 * SynFacilCompletion.pas
 
 Only the unit 'SynFacilCompletion' is necessary to include in the section USES of the programs. 'SynFacilHighlighter' is used by 'SynCompletionFacil' and must be accessible.

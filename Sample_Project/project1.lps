@@ -4,7 +4,7 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="27">
+    <Units Count="29">
       <Unit0>
         <Filename Value="project1.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -18,8 +18,9 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
-        <TopLine Value="16"/>
-        <CursorPos Y="31"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="28"/>
+        <CursorPos Y="37"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit1>
@@ -111,16 +112,14 @@
       </Unit13>
       <Unit14>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="1649"/>
-        <CursorPos X="34" Y="1649"/>
+        <TopLine Value="51"/>
+        <CursorPos X="26" Y="52"/>
         <ExtraEditorCount Value="1"/>
         <ExtraEditor1>
           <EditorIndex Value="-1"/>
-          <TopLine Value="1674"/>
-          <CursorPos X="8" Y="1688"/>
-          <FoldState Value=" T3)A2gF"/>
+          <TopLine Value="1649"/>
+          <CursorPos X="38" Y="1656"/>
         </ExtraEditor1>
         <UsageCount Value="100"/>
         <Bookmarks Count="2">
@@ -213,14 +212,26 @@
       </Unit25>
       <Unit26>
         <Filename Value="..\..\SynFacilSyn-1.17\SynFacilHighlighter.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="98"/>
         <CursorPos X="50" Y="114"/>
         <UsageCount Value="10"/>
-        <Loaded Value="True"/>
       </Unit26>
+      <Unit27>
+        <Filename Value="..\..\SynFacilSyn-1.18\SynFacilHighlighter.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos Y="26"/>
+        <UsageCount Value="10"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="..\..\SynFacilSyn-1.18\SynFacilBasic.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="82"/>
+        <CursorPos X="5" Y="100"/>
+        <UsageCount Value="10"/>
+      </Unit28>
     </Units>
-    <JumpHistory Count="19" HistoryIndex="18">
+    <JumpHistory Count="18" HistoryIndex="17">
       <Position1>
         <Filename Value="unit1.pas"/>
         <Caret Line="15"/>
@@ -231,75 +242,80 @@
       </Position2>
       <Position3>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="79" Column="3"/>
+        <Caret Line="1688" Column="8" TopLine="1674"/>
       </Position3>
       <Position4>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="266" TopLine="251"/>
+        <Caret Line="565" Column="40" TopLine="540"/>
       </Position4>
       <Position5>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1295" TopLine="1285"/>
+        <Caret Line="162" Column="15" TopLine="144"/>
       </Position5>
       <Position6>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="246" Column="45" TopLine="227"/>
+        <Caret Line="565" Column="59" TopLine="548"/>
       </Position6>
       <Position7>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1287" TopLine="1285"/>
+        <Caret Line="563" Column="17" TopLine="548"/>
       </Position7>
       <Position8>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="246" Column="50" TopLine="227"/>
+        <Caret Line="564" Column="11" TopLine="545"/>
       </Position8>
       <Position9>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="259" Column="15" TopLine="240"/>
+        <Caret Line="63" TopLine="39"/>
       </Position9>
       <Position10>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1703" Column="34" TopLine="1684"/>
+        <Caret Line="1157" Column="21" TopLine="1129"/>
       </Position10>
       <Position11>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="259" Column="15" TopLine="240"/>
+        <Caret Line="127" Column="24" TopLine="108"/>
       </Position11>
       <Position12>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1703" Column="34" TopLine="1684"/>
+        <Caret Line="960" Column="46" TopLine="941"/>
       </Position12>
       <Position13>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1799" Column="28" TopLine="1780"/>
+        <Caret Line="976" Column="47" TopLine="954"/>
       </Position13>
       <Position14>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1703" Column="34" TopLine="1684"/>
+        <Caret Line="1455" Column="40" TopLine="1430"/>
       </Position14>
       <Position15>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1799" Column="28" TopLine="1780"/>
+        <Caret Line="1451" Column="13" TopLine="1430"/>
       </Position15>
       <Position16>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1700" Column="29" TopLine="1684"/>
+        <Caret Line="1430" Column="20" TopLine="1419"/>
       </Position16>
       <Position17>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="296" Column="50" TopLine="278"/>
+        <Caret Line="1584" Column="11" TopLine="1557"/>
       </Position17>
       <Position18>
         <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1639" Column="41" TopLine="1631"/>
+        <Caret Line="1563" Column="26" TopLine="1548"/>
       </Position18>
-      <Position19>
-        <Filename Value="..\SynFacilCompletion.pas"/>
-        <Caret Line="1638" Column="3" TopLine="1638"/>
-      </Position19>
     </JumpHistory>
   </ProjectSession>
   <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="unit1.pas"/>
+        <Line Value="37"/>
+      </Item1>
+    </BreakPoints>
     <Watches Count="1">
       <Item1>
         <Expression Value="fProcTable"/>

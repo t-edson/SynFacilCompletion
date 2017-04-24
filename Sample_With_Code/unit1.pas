@@ -47,13 +47,13 @@ begin
   hlt.CreateAttributes;            //Limpia atributos
   hlt.ClearMethodTables;           //limpìa tabla de métodos
   hlt.DefTokIdentif('[$A-Za-z_]', '[A-Za-z0-9_]*');
-  hlt.DefTokContent('[0-9]', '[0..9xa-fXA-F]', hlt.tkNumber);
-  hlt.AddIdentSpecList('begin end var const type', hlt.tkKeyword);
-  hlt.AddIdentSpecList('case class if else exit unit', hlt.tkKeyword);
-  hlt.AddIdentSpecList('for function procedure property', hlt.tkKeyword);
-  hlt.DefTokDelim('''','''', hlt.tkString);
-  hlt.DefTokDelim('//','', hlt.tkComment);
-  hlt.DefTokDelim('{','}', hlt.tkComment, tdMulLin);
+  hlt.DefTokContent('[0-9]', '[0..9xa-fXA-F]', hlt.tnNumber);
+  hlt.AddIdentSpecList('begin end var const type', hlt.tnKeyword);
+  hlt.AddIdentSpecList('case class if else exit unit', hlt.tnKeyword);
+  hlt.AddIdentSpecList('for function procedure property', hlt.tnKeyword);
+  hlt.DefTokDelim('''','''', hlt.tnString);
+  hlt.DefTokDelim('//','', hlt.tnComment);
+  hlt.DefTokDelim('{','}', hlt.tnComment, tdMulLin);
   hlt.Rebuild;  //reconstruye
   //define completion
   hlt.CompletionOn:=true;

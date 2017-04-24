@@ -1,3 +1,7 @@
+1.18
+====
+Se configura para trabajar con SynFacilSyn 1.18.
+
 1.17
 ====
 Se configura para trabajar con SynFacilSyn 1.17.

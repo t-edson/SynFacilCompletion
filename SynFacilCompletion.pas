@@ -60,7 +60,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-{$define Verbose}
+//{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
@@ -123,8 +123,8 @@ type
   //Elemento del patrón
   TFaPatternElement = record
     patKind: TFaTPatternElementKind;
-    str    : string;          //valor, cuando es del tipo pak_String
-    toktyp : TSynHighlighterAttributes;  //valor cuando es de tipo pak_TokTyp o pak_NoTokTyp
+    str    : string;   //valor, cuando es del tipo pak_String
+    toktyp : integer;  //valor cuando es de tipo pak_TokTyp o pak_NoTokTyp
   end;
   TFaPatternElementPtr = ^TFaPatternElement;
 
@@ -562,10 +562,10 @@ begin
   curBlock := tok0^.curBlk;  //devuelve bloque
   {$IFDEF Verbose}
   DbgOut('  LookAround:(');
-  if tok_3<>nil then DbgOut(tok_3^.TokTyp.Name+',');
-  if tok_2<>nil then DbgOut(tok_2^.TokTyp.Name+',');
-  if tok_1<>nil then DbgOut(tok_1^.TokTyp.Name+',');
-  if tok0<>nil then DbgOut(tok0^.TokTyp.Name);
+  if tok_3<>nil then DbgOut(hlt.Attrib[tok_3^.TokTyp].Name+',');
+  if tok_2<>nil then DbgOut(hlt.Attrib[tok_2^.TokTyp].Name+',');
+  if tok_1<>nil then DbgOut(hlt.Attrib[tok_1^.TokTyp].Name+',');
+  if tok0<>nil then DbgOut(hlt.Attrib[tok0^.TokTyp].Name);
   debugln(')');
   {$ENDIF}
 end;
@@ -957,7 +957,7 @@ begin
     end else if hlt.IsAttributeName(strElem) then begin  //es
       //Es nombre de tipo de token
       patEle^.patKind := pak_TokTyp;
-      patEle^.toktyp := hlt.GetAttribByName(strElem);   //tipo de atributo
+      patEle^.toktyp := hlt.GetAttribIDByName(strElem);   //tipo de atributo
     end else begin  //no es, debe haber algún error
       ErrStr := Format(ERR_PAT_INVALID_,[strElem]);
       exit;
@@ -973,7 +973,7 @@ begin
     end else if hlt.IsAttributeName(strElem) then begin
        //Es nombre de tipo de token
        patEle^.patKind := pak_NoTokTyp;
-       patEle^.toktyp := hlt.GetAttribByName(strElem);   //tipo de atributo
+       patEle^.toktyp := hlt.GetAttribIDByName(strElem);   //tipo de atributo
     end else begin  //no es, debe haber algún error
       ErrStr := Format(ERR_PAT_INVALID_,[strElem]);
       exit;
@@ -1427,7 +1427,7 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
     nodo2: TDOMNode;
     lst: TFaCompletionList;
     tIncAttr, tIncList: TFaXMLatrib;
-    tipTok: TSynHighlighterAttributes;
+    tipTok: integer;
     tIncIcnI: TFaXMLatrib;
     IncIcnI: Integer;
   begin
@@ -1448,7 +1448,7 @@ procedure TSynFacilComplet.ProcXMLOpenOn(nodo: TDOMNode);
         if tIncAttr.hay then begin
           //se pide agregar la lista de identificadores de un atributo en especial
           if IsAttributeName(tIncAttr.val)  then begin
-            tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+            tipTok := GetAttribIDByName(tIncAttr.val);   //tipo de atributo
             if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
             //busca los identificadores para agregarlos
             for j:= 0 to high(SpecIdentifiers) do begin
@@ -1554,17 +1554,17 @@ procedure TSynFacilComplet.ProcCompletionLabel(nodo: TDOMNode);
 //completado de código.
 var
   listIden: string;
-  i,j   : Integer;
-  nodo2: TDOMNode;
-  tipTok: TSynHighlighterAttributes;
-  hayOpen: Boolean;
+  i,j     : Integer;
+  nodo2   : TDOMNode;
+  tipTok  : integer;
+  hayOpen : Boolean;
   tIncAttr: TFaXMLatrib;
   tLstName, tLstIcnI: TFaXMLatrib;
-  defPat: TFaOpenEvent;
-  cmpList: TFaCompletionList;
-  idxIcon: integer;
+  defPat  : TFaOpenEvent;
+  cmpList : TFaCompletionList;
+  idxIcon : integer;
   tIncIcnI: TFaXMLatrib;
-  IncIcnI: Integer;
+  IncIcnI : Integer;
 begin
   hayOpen := false;  //inicia bandera
   //crea evento de apertura por defecto
@@ -1581,7 +1581,7 @@ begin
       if tIncAttr.hay then begin
         //se pide agregar la lista de identificadores de un atributo en especial
         if IsAttributeName(tIncAttr.val)  then begin
-          tipTok := GetAttribByName(tIncAttr.val);   //tipo de atributo
+          tipTok := GetAttribIDByName(tIncAttr.val);   //tipo de atributo
           if tIncIcnI.hay then IncIcnI := tIncIcnI.n else IncIcnI:=-1;
           //busca los identificadores para agregarlos
           for j:= 0 to high(SpecIdentifiers) do begin

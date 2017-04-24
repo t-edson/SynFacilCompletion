@@ -19,8 +19,8 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="Unit1"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="43"/>
-        <CursorPos X="38" Y="52"/>
+        <TopLine Value="37"/>
+        <CursorPos Y="44"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -231,7 +231,7 @@
         <UsageCount Value="10"/>
       </Unit31>
     </Units>
-    <JumpHistory Count="24" HistoryIndex="23">
+    <JumpHistory Count="25" HistoryIndex="24">
       <Position1>
         <Filename Value="unit1.pas"/>
         <Caret Line="80" Column="10" TopLine="63"/>
@@ -328,9 +328,22 @@
         <Filename Value="unit1.pas"/>
         <Caret Line="21" Column="30"/>
       </Position24>
+      <Position25>
+        <Filename Value="unit1.pas"/>
+        <Caret Line="55" Column="31" TopLine="43"/>
+      </Position25>
     </JumpHistory>
   </ProjectSession>
   <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="unit1.pas"/>
+        <Line Value="44"/>
+      </Item1>
+    </BreakPoints>
     <Watches Count="1">
       <Item1>
         <Expression Value="fProcTable"/>
