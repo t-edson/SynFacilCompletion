@@ -243,8 +243,8 @@ type
   { TSynCompletionF }
   {Clase personalizada de "TSynCompletion" usada para el completado con "TSynFacilComplet"}
   TSynCompletionF = class(TSynCompletion)
-    function OnSynCompletionPaintItem(const {%H-}AKey: string; ACanvas: TCanvas; X,
-      Y: integer; {%H-}IsSelected: boolean; Index: integer): boolean;
+    function OnSynCompletionPaintItem(const AKey: string; ACanvas: TCanvas; X,
+      Y: integer; IsSelected: boolean; Index: integer): boolean;
   public
     IconList: TImageList;   //lista de íconos
     procedure Refresh;
@@ -293,7 +293,7 @@ type
       filter: TFaFilterList): TFaOpenEvent;
     function AddComplList(lstName: string): TFaCompletionList;
     function GetListByName(lstName: string): TFaCompletionList;
-    procedure LoadFromFile(const Filename: string); override;
+    procedure LoadFromFile(Arc: string); override;
     function LoadSyntaxFromPath(SourceFile: string; path: string;
       CaseSens: boolean=false): string;
     procedure SelectEditor(ed0: TSynEdit);  //inicia la ayuda contextual
@@ -1636,7 +1636,7 @@ begin
     //mantiene el evento por defecto
   end;
 end;
-procedure TSynFacilComplet.LoadFromFile(const Filename: string);
+procedure TSynFacilComplet.LoadFromFile(Arc: string);
 var
   doc: TXMLDocument;
   i: Integer;
@@ -1646,14 +1646,14 @@ var
   tOpenKUp: TFaXMLatrib;
   tSelOEnt: TFaXMLatrib;
 begin
-  inherited LoadFromFile(Filename);  {Puede disparar excepción. El mesnajes de error generado
+  inherited LoadFromFile(Arc);  {Puede disparar excepción. El mesnajes de error generado
                                 incluye el nombre del archivo}
   OpenOnKeyUp := true;     //por defecto
   ReadSpecialIdentif;      //carga los identificadores especiales
   OpenEvents.Clear;      //limpia patrones de apertura
   CompletLists.Clear;
   try
-    ReadXMLFile(doc, Filename);  //carga archivo
+    ReadXMLFile(doc, Arc);  //carga archivo
     //procede a la carga de la etiqueta <COMPLETION>
     for i:= 0 to doc.DocumentElement.ChildNodes.Count - 1 do begin
        // Lee un Nodo o Registro
@@ -1679,7 +1679,7 @@ begin
     on e: Exception do begin
       //Completa el mensaje con nombre de archivo, porque esta parte del código
       //no lo incluye.
-      e.Message:=ERROR_LOADING_ + Filename + #13#10 + e.Message;
+      e.Message:=ERROR_LOADING_ + Arc + #13#10 + e.Message;
       doc.Free;
       raise   //genera de nuevo
     end;
