@@ -1,5 +1,5 @@
 {
-SynFacilCompletion
+SynFacilCompletion 1.18
 ==================
 Por Tito Hinostroza
 
@@ -708,7 +708,7 @@ procedure TFaCursorEnviron.InsertSequence(ed: TSynEdit; Pos1, Pos2: TPoint; Repl
     while y>0 do begin
       lin := ed.Lines[y-1];
       if trim(copy(lin,x, length(lin)))<>'' then
-        exit(ed.Lines[y-1]);
+        exit(lin);
       dec(y);
     end;
     //no encontró
@@ -718,8 +718,8 @@ var
   toRepl: String;
   cursorPos: TPoint;
   seq: TFaCompletSeqType;
-  linNoWhite: String;
-  i: Integer;
+  linNoWhite, curLin: String;
+  i, dif: Integer;
 begin
   ed.BeginUndoBlock;
   ed.TextBetweenPointsEx[Pos1,Pos2, scamEnd] := ''; //elimina el contenido y deja cursor al final
@@ -753,12 +753,23 @@ begin
         for i:=ed.CaretX to length(linNoWhite) do begin
           //La definición de blanco #1..#32, corresponde al resaltador
           if not (linNoWhite[i] in [#1..#32]) then begin
-             //encontró.
-             ed.CaretX:=i;
-             break; //sale del for
+             //Encontró. Ahora hay que posicionar el cursor en "i".
+             curLin := ed.LineText;   //línea actual
+             if length(curLin)<i then begin
+               //No hay caracteres, en donde se quiere colocar el cursor.
+               dif := i - length(curLin);   //esto es lo que falta
+               ed.CaretX := length(curLin)+1;   //pone cursor al final
+               ed.InsertTextAtCaret(Space(dif));  {Completa con espacios. Usa InsertTextAtCaret,
+                                                  para poder deshacer.}
+               ed.CaretX:=i;   //ahora sí se puede posicionar el cursor.
+             end else begin
+               //Se puede posicionar directamente
+               ed.CaretX:=i;
+             end;
+             break; //sale del FOR
           end;
         end;
-        {Si llega aquí, es que no encontró el caracter buscado, lo que indicaria que el
+        {Si llega aquí sin encontrar el caracter buscado, indicaria que el
          algoritmo de búsqueda de FindNoWhiteLineUp() no es consistente con este código.}
       end;
     end;

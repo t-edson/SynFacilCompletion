@@ -1,6 +1,8 @@
 1.18
 ====
 Se configura para trabajar con SynFacilSyn 1.18.
+Se corrige TFaCursorEnviron.InsertSequence(), para insertar espacios en blanco cuando
+se quiere posicionar el cursor, más allá del límite de la línea actual.
 
 1.17
 ====
