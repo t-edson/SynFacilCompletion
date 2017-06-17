@@ -266,11 +266,11 @@ begin
   hlt1.Rebuild;
   hlt1.SelectEditor(ed1);
   //Create an Oppening-event
-  oev :=  hlt1.AddOpenEvent('Identifier', '', fil_LastTokPart);
+  opEve :=  hlt1.AddOpenEvent('Identifier', '', fil_LastTokPart);
   //Define the completion list
-  oev.AddItem('aaa',-1);
-  oev.AddItem('abb',-1);
-  oev.AddItem('acc',-1);
+  opEve.AddItem('aaa',-1);
+  opEve.AddItem('abb',-1);
+  opEve.AddItem('acc',-1);
 end;
 ```
 The AddItem() method let us, to add new words to the completion list.
@@ -279,12 +279,16 @@ For more information, check the documentation.
  
 ## Filling dinamically the completion List
 
-It's possible to fill dynamically the completion list, before shown in the editor. To do that, it is necessary to use de event OnLoadItems, and it need to be done entirely by code.
-
-On simple code to manage the event onLoadItems, could be:
+It's possible to fill dynamically the completion list, before shown in the editor. To do that, it is necessary to use de event OnLoadItems from the TFaOpenEvent object:
 
 ```
-procedure TForm1.opEveLoadItems(curEnv: TFaCursorEnviron; var Cancel: boolean);
+  opEve.OnLoadItems := @evoLoadItems;
+```
+
+One simple code to manage the event onLoadItems, could be:
+
+```
+procedure TForm1.opEveLoadItems(opEve: TFaOpenEvent; curEnv: TFaCursorEnviron; var Cancel: boolean);
 begin
   //Fills the completion list 
   opEve.ClearAvails;
