@@ -60,7 +60,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-//{$define Verbose}
+{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
@@ -175,7 +175,9 @@ type
     constructor Create(hlt0: TSynFacilSyn);
   end;
 
-  TFaOnLoadItems = procedure(curEnv: TFaCursorEnviron; var Cancel: boolean) of object;
+  TFaOpenEvent = class;
+  TFaOnLoadItems = procedure(opEve: TFaOpenEvent; curEnv: TFaCursorEnviron;
+                             out Cancel: boolean) of object;
   //Acciones válidas que se realizarán al seleccionar un ítem
   TFAPatAction = (
     pac_None,       //no se realiza ninguna acción
@@ -264,9 +266,7 @@ type
     MenuComplet: TSynCompletionF;//menú contextual
     curEnv    : TFaCursorEnviron;  //entorno del cursor
 
-    utKey         : TUTF8Char;     //tecla pulsada
-    vKey          : word;          //código de tecla virtual
-    vShift        : TShiftState;   //estado de shift
+    UtfKey         : TUTF8Char;     //tecla pulsada
     SpecIdentifiers: TArrayTokSpec;
     SearchOnKeyUp : boolean;       //bandera de control
     procedure MenuComplet_OnExecute(Sender: TObject); virtual;
@@ -300,7 +300,8 @@ type
     procedure UnSelectEditor;  //termina la ayuda contextual con el editor
     procedure UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char);
     procedure KeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure OpenCompletionWindow;
+    procedure OpenCompletionWindow(vKey: word; vShift: TShiftState; vUtfKey: TUTF8Char
+      );
     procedure CloseCompletionWindow;
   public  //Constructor y Destructor
     constructor Create(AOwner: TComponent); override;
@@ -1100,7 +1101,7 @@ var
   Cancel: boolean;
 begin
   if OnLoadItems<>nil then begin
-     OnLoadItems(curEnv, Cancel);
+     OnLoadItems(self, curEnv, Cancel);
      if Cancel then exit;
   end;
   case filter of
@@ -1712,6 +1713,9 @@ begin
   MenuComplet.Width:=200;     //ancho inicial
   MenuComplet.OnExecute:=@MenuComplet_OnExecute;
   MenuComplet.OnCodeCompletion:=@OnCodeCompletion;
+  //Para evitar que reemplace automáticamente, cuando se abre con un solo elemento en la lista
+  MenuComplet.AutoUseSingleIdent := false;
+
   //iintercepta eventos de teclado, para cambiar comportamiento
   MenuComplet.OnKeyDown:=@FormKeyDown;
   MenuComplet.OnUTF8KeyPress:=@FormUTF8KeyPress;  //eventos del teclado de la ventana de completado
@@ -1832,28 +1836,16 @@ begin
   exit(nil);   //no enccontró
 end;
 procedure TSynFacilComplet.MenuComplet_OnExecute(Sender: TObject);
-//Este evento se genera antes de abrir el menú de completado.
-//Llena la lista "AvailItems", con los ítems que correspondan de acuerdo a la posición
-//actual del cursor y de la configuración del archivo XML.
-//Luego llena el menú contextual con los ítems filtrados de acuerdo a la posición actual.
+{Este evento se genera antes de abrir el menú de completado.
+Se puede abrir al pulsar una tecla común. La otra opción es por un atajo.
+Llena la lista "AvailItems", con los ítems que correspondan de acuerdo a la posición
+actual del cursor y de la configuración del archivo XML.
+Luego llena el menú contextual con los ítems filtrados de acuerdo a la posición actual.}
 var
   opEve: TFaOpenEvent;
 begin
   MenuComplet.ItemList.Clear;   //inicia menú
-  //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
-  { TODO : Tal vez esta verifiación debería hacerse en el mismo TSynFacilComplet.KeyUp(), para dejar esta parte del código más limpio}
-  if MenuComplet.CurrentString='<KeyUp>' then begin
-//    debugln('OnExecute: Abierto por tecla común utKey='+utKey+',vKey='+IntToStr(vKey));
-    if (vKey in [VK_BACK, VK_TAB] ) and (vShift=[]) then begin
-      //esta tecla es válida
-    end else if (utKey<>'') and (utKey[1] in [#8,#9,' '..'@','A'..'z']) then begin
-      //esta tecla es válida
-    end else begin
-      //los otros casos no se consideran que deban explorarse
-      exit;
-    end;
-  end;
-
+debugln('Llenando');
   //Prepara para llenar la lista de completado
   curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
   CurOpenEve := nil;
@@ -1865,14 +1857,9 @@ begin
   end;
   //Llena el menú de completado
   FillCompletMenuFiltered;  //hace el primer filtrado
-
-//Después de llenar la lista, se puede ver si tiene o no elementos
-  if MenuComplet.ItemList.Count <> 0 then begin  //se abrirá
-    if MenuComplet.ItemList.Count  = 1 then begin
-      //se agrega un elemento más porque sino SynCompletion, hará el reemplazo automáticamente.
-      MenuComplet.ItemList.Add('');
-    end;
-  end;
+  {$IFDEF Verbose}
+  debugln('Llenado con %d', [MenuComplet.ItemList.Count]);
+  {$ENDIF}
 end;
 procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
@@ -1896,7 +1883,7 @@ procedure TSynFacilComplet.FormKeyDown(Sender: TObject; var Key: Word;
     CloseCompletionWindow;  //cierra
   end;
 begin
-//debugln('Form.OnKeyDown:'+ XXX +':'+IntToStr(ed.CaretX));
+//debugln('   Form.OnKeyDown Key='+ IntToStr(Key) +':'+IntToStr(ed.CaretX));
   case Key of
     VK_RETURN: begin
         if Shift= [] then begin
@@ -2010,7 +1997,7 @@ procedure TSynFacilComplet.UTF8KeyPress(Sender: TObject; var UTF8Key: TUTF8Char)
 {Debe recibir la tecla pulsada aquí, y guardarla para KeyUp, porque allí no se puede
 reconocer caracteres ASCII. Se usa UTF para hacerlo más fléxible}
 begin
-  utKey:=UTF8Key;  //guarda tecla
+  UtfKey:=UTF8Key;  //guarda tecla
 end;
 procedure TSynFacilComplet.KeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
@@ -2038,15 +2025,10 @@ begin
   end;
   if ed = NIL then exit;     //no hay editor
   if ed.SelectionMode <> smNormal then exit;  //para no interferir en modo columna
-  //captura las teclas pulsadas y llama a MenuComplet_OnExecute(), para ver si correspodne mostrar
-  //la ventana de completado
-  vKey := Key;   //guarda
-  vShift := Shift;
-  //Dispara evento MenuComplet_OnExecute con el valor de "vKey", "vShift" y "utKey" actualizados
-  OpenCompletionWindow;  //solo se mostrará si hay ítems
-  vKey := 0;
-  vShift := [];  //limpia
-  utKey := '';  //limpia por si la siguiente tecla pulsada no dispara a UTF8KeyPress()
+  {Llama a OpenCompletionWindow(), con información del teclado, para que evalúe si
+  corresponde abrir la ventana de completado. De ser así, llamará a MenuComplet_OnExecute.}
+  OpenCompletionWindow(Key, Shift, UtfKey);  //solo se mostrará si hay ítems
+  UtfKey := '';  //limpia por si la siguiente tecla pulsada no dispara a UTF8KeyPress()
   SearchOnKeyUp := true;  //limpia bandera
 End;
 procedure TSynFacilComplet.FillCompletMenuFiltered;
@@ -2062,17 +2044,31 @@ begin
   end;
   MenuComplet.Refresh;
 end;
-procedure TSynFacilComplet.OpenCompletionWindow;
+procedure TSynFacilComplet.OpenCompletionWindow(vKey: word; vShift: TShiftState;
+                                                vUtfKey: TUTF8Char);
 //Abre la ayuda contextual, en la posición del cursor.
-var p:TPoint;
+var
+  p:TPoint;
 begin
-  //calcula posición donde aparecerá el menú de completado
+  //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
+  if (vKey in [VK_BACK, VK_TAB] ) and (vShift=[]) then begin
+    //esta tecla es válida
+    debugln('--Tecla válida para abrir menú: %d', [vKey]);
+  end else if (vUtfKey<>'') and (vUtfKey[1] in [#8,#9,' '..'@','A'..'z']) then begin
+    //esta tecla es válida
+    debugln('--Tecla válida para abrir menú: %d', [vKey]);
+  end else begin
+    //los otros casos no se consideran que deban explorarse
+    debugln('--Tecla no válida para abrir menú: %d', [vKey]);
+    exit;
+  end;
+  //Calcula posición donde aparecerá el menú de completado
   p := Point(ed.CaretXPix,ed.CaretYPix + ed.LineHeight);
   p.X:=Max(0,Min(p.X, ed.ClientWidth - MenuComplet.Width));
   p := ed.ClientToScreen(p);
   //Abre menú contextual, llamando primero a OnExecute(). Solo se mostrará si tiene elementos.
-  MenuComplet.Execute('<KeyUp>', p.x, p.y);   //pasa una clave cualquiera para identificación posterior
-End;
+  MenuComplet.Execute('', p.x, p.y);   //pasa una clave cualquiera para identificación posterior
+end;
 procedure TSynFacilComplet.CloseCompletionWindow;
 //Cierra la ventana del menú contextual
 begin
@@ -2087,9 +2083,7 @@ begin
   CaseSensComp := false;  //por defecto
   CompletionOn := true;  //activo por defecto
   SelectOnEnter := true;
-  vKey := 0;     //limpia
-  vShift := [];  //limpia
-  utKey := '';   //limpia
+  UtfKey := '';   //limpia
 end;
 destructor TSynFacilComplet.Destroy;
 begin

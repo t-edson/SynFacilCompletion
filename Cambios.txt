@@ -1,3 +1,14 @@
+1.19
+====
+Se mueve código de verifiación de tecla pulsada de TSynFacilComplet.MenuComplet_OnExecute()
+a TSynFacilComplet.OpenCompletionWindow;
+Se eliminan vKey y vShift, como variables globales.
+Se cambia de nombre a utKey por UtfKey.
+Se configura MenuComplet.AutoUseSingleIdent en FALSE, para evitar agregar un ítem 
+adicional a la lista.
+Se modifica el evento TFaOnLoadItems para que incluya la referencia al objeto 
+TFaOpenEvent que hace la llamada.
+
 1.18
 ====
 Se configura para trabajar con SynFacilSyn 1.18.
