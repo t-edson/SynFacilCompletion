@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<Language name="Object Pascal" ext="pas">
+  <Attribute Name="Keyword" Style="b"> </Attribute>
+  <Attribute Name="tag" BackCol="yellow"> </Attribute>
+  <Completion>
+    <!--OpenOn AfterPattern='"elegir",space'
+    FilterBy="None"
+    Action="Insert">
+        azul amarillo anaranjado
+        verde violeta
+	rojo
+    </OpenOn>
+    <OpenOn AfterPattern='"elegir",space,identifier'>
+        azul amarillo anaranjado
+        verde violeta
+	rojo
+    </OpenOn-->
+    <List name='aaa'> aList1 aList2 </List>
+    <OpenOn AfterPattern='identifier'>
+abanico abecedario fulano mengano
+    <Include List='aaa' />
+    </OpenOn>
+    <OpenOn AfterPattern='tag' BeforePattern='Eol' Name='Tag'>
+     "&lt;aa\nbb|cc"
+     "&lt;Attribute &gt; &lt;/Attribute &gt; | aaa "
+     "&lt;Language &gt;"
+     "&lt;Include &gt;"
+     "&lt;OpenOn &gt;"
+     "&lt;OpenOn AfterPattern='' FilterBy='' Action='' &gt;\n&lt;/OpenOn&gt;"
+     "&lt;List &gt;"
+     "&lt;Completion &gt;"
+     "&lt;Identifiers &gt;"
+     "&lt;Token &gt;"
+     "&lt;Comment &gt;"
+     "&lt;Block &gt;"
+     "&lt;Section &gt; "
+    </OpenOn>
+  </Completion>
+  <Identifiers CharsStart= "A..Za..z_" Content = "A..Za..z0..9_">
+    <token attribute="Keyword"> 
+    absolute  and  array  asm as 
+    begin 
+    case  const  constructor class 
+    destructor  div  do  downto dispose  
+    else  end exit except  exports 
+    for function file finalization finally
+    goto
+    if  implementation  in  inherited  inline  interface initialization  is 
+    library label
+    </token>
+  </Identifiers>
+  <Token CharsStart="$" Content = '0..9ABCDEFabcdef' Attribute='NUMBER'> </Token>
+  <Token CharsStart="0..9" Content = '0..9.' Attribute='NUMBER'> </Token>
+  <Token Start="&lt;" End="&gt;" Attribute='tag' Multiline="true"></Token>
+  <Comment Start="//" ></Comment>
+  <Comment Start="(*" End="*)" Multiline="true"></Comment>
+  <Comment Start="{" End="}" Multiline="true" Folding="true"></Comment>
+
+</Language>

@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<Language name="Object Pascal" ext="pas" ColorBlock="Block">
+  <Completion>
+  siempre1
+  siempre2
+  siempre3
+  <INCLUDE Attribute="Keyword"/>
+  <List Name="ListaA">
+    lista1 lista2  
+  </List>
+  <OpenOn AfterPattern='identifier'>
+	"begin
+end"
+	alfa2
+	bravo
+	charllie
+	<INCLUDE List="ListaA"/>
+  </OpenOn>
+  <OpenOn AfterPattern="Comment" BeforePattern="Comment" FilterBy="LastIdentPart">
+     movlw
+	 clrf
+	 btfsz
+  </OpenOn>
+  
+  </Completion>
+  <Attribute Name="Keyword" Style="b"> </Attribute>
+  <Identifiers CharsStart= "A..Za..z_" Content = "A..Za..z0..9_"> 
+    <token attribute="Keyword"> 
+    absolute  and  array  asm as 
+    begin 
+    while  with 
+    xor
+    </token>
+  </Identifiers>
+  <Token CharsStart="$" Content = '0..9ABCDEFabcdef' Attribute='NUMBER'> </Token>
+  <Token CharsStart="#" Content = '0..9' Attribute='STRING'> </Token>
+  <Token CharsStart="0..9" Content = '0..9.' Attribute='NUMBER'> </Token>
+  <String Start="'" End="'"></String>
+  <Comment Start="!" ></Comment>
+  <Comment Start="(*" End="*)" Multiline="true"></Comment>
+  <Comment Start="{" End="}" Multiline="true" Folding="true"></Comment>
+
+</Language>
