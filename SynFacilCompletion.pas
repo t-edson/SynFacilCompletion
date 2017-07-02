@@ -60,7 +60,7 @@ llamar a CloseCompletionWindow().
 }
 unit SynFacilCompletion;
 {$mode objfpc}{$H+}
-{$define Verbose}
+//{$define Verbose}
 interface
 uses
   Classes, SysUtils, fgl, Dialogs, XMLRead, DOM, LCLType, Graphics, Controls,
@@ -144,8 +144,8 @@ type
     hlt: TSynFacilSyn;        //referencia al resaltador que lo contiene
     tokens   : TATokInfo;     //lista de tokens actuales
     StartIdentif : integer;   //inicio de identificador
-    function ExtractStaticText(var ReplaceSeq: string;
-      var seq: TFaCompletSeqType): string;
+    function ExtractStaticText(var ReplaceSeq: string; out seq: TFaCompletSeqType
+      ): string;
     procedure InsertSequence(ed: TSynEdit; Pos1, Pos2: TPoint; ReplaceSeq: string);
     procedure UpdateStartIdentif;
   public
@@ -634,7 +634,7 @@ begin
 end;
 {Estas funciones implementan las acciones. Procesan las secuencias de escape}
 function TFaCursorEnviron.ExtractStaticText(var ReplaceSeq: string;
-                                            var seq: TFaCompletSeqType): string;
+                                            out seq: TFaCompletSeqType): string;
 {Extrae un fragmento de texto de "ReplaceSeq", que puede insertarse directamente en el editor,
  sin necesidad de hacer cálculos de posición, o que no contengan comandos de posicionamiento
  del cursor. La idea es que el texto que se devuelva aquí, se pueda insertar directamente
@@ -1145,6 +1145,7 @@ function TFaOpenEvent.MatchPatternElement(nPe: integer; tokX: TFaTokInfoPtr;
 var
   pe: TFaPatternElement;
 begin
+  Result := false;  //por defecto
   pe := elem[nPe];  //no hay validación. Por velocidad, podría ser mejor un puntero.
   if tokX = nil then exit(false); //no existe este token
   case pe.patKind of
@@ -1177,6 +1178,7 @@ function TFaOpenEvent.MatchPatternBefore(const curEnv: TFaCursorEnviron
   ): boolean;
 {Verifica si el patrón indicado, cumple con las condiciones actuales (before)}
 begin
+  Result := false;  //por defecto
   case nBef of
   0: begin  //no hay elementos, siempre cumple                  |
     exit(true);
@@ -1199,6 +1201,7 @@ function TFaOpenEvent.MatchPatternAfter(const curEnv: TFaCursorEnviron
   ): boolean;
 {Verifica si el patrón indicado, cumple con las condiciones actuales (after)}
 begin
+  Result := false;  //por defecto
   case nAft of
   0: begin  //no hay elementos, siempre cumple
     exit(true);
@@ -1845,7 +1848,6 @@ var
   opEve: TFaOpenEvent;
 begin
   MenuComplet.ItemList.Clear;   //inicia menú
-debugln('Llenando');
   //Prepara para llenar la lista de completado
   curEnv.LookAround(ed, CaseSensComp);  //Lee entorno.
   CurOpenEve := nil;
@@ -2052,14 +2054,20 @@ var
 begin
   //Verifica si se va a abrir la lista por tecla común. La otra opción es por un atajo
   if (vKey in [VK_BACK, VK_TAB] ) and (vShift=[]) then begin
-    //esta tecla es válida
+    //Esta tecla es válida
+    {$IFDEF Verbose}
     debugln('--Tecla válida para abrir menú: %d', [vKey]);
+    {$ENDIF}
   end else if (vUtfKey<>'') and (vUtfKey[1] in [#8,#9,' '..'@','A'..'z']) then begin
-    //esta tecla es válida
+    //Esta tecla es válida
+    {$IFDEF Verbose}
     debugln('--Tecla válida para abrir menú: %d', [vKey]);
+    {$ENDIF}
   end else begin
-    //los otros casos no se consideran que deban explorarse
+    //Los otros casos no se consideran que deban explorarse
+    {$IFDEF Verbose}
     debugln('--Tecla no válida para abrir menú: %d', [vKey]);
+    {$ENDIF}
     exit;
   end;
   //Calcula posición donde aparecerá el menú de completado
