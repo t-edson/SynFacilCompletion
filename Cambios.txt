@@ -1,3 +1,7 @@
+1.20
+====
+Se crea la versión para nivelarse con la versión de 1.20, de Synfacilsyn.
+
 1.19
 ====
 Se mueve código de verifiación de tecla pulsada de TSynFacilComplet.MenuComplet_OnExecute()
