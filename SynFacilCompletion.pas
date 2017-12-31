@@ -1,5 +1,5 @@
 {
-SynFacilCompletion 1.18
+SynFacilCompletion
 ==================
 Por Tito Hinostroza
 
