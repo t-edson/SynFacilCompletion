@@ -233,6 +233,7 @@ type
     procedure AddList(Alist: TFaCompletionList; OnlyRef: boolean);
     procedure ClearAvails;
     procedure AddAvail(txt: string);  //Rutina simple para agregar cadena a Avails
+    procedure Clear;
   public
     constructor Create(hlt0: TSynFacilSyn);
     destructor Destroy; override;
@@ -1058,6 +1059,11 @@ begin
   it.Replac:=txt;
   it.idxIcon:=-1;
   Avails.Add(it);
+end;
+procedure TFaOpenEvent.Clear;
+begin
+  ClearAvails;
+  ClearItems;
 end;
 //manejo de ítems
 procedure TFaOpenEvent.FilterByChar(curEnv: TFaCursorEnviron; const c: char);
