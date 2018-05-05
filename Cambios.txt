@@ -3,6 +3,7 @@
 Se crea la versión para nivelarse con la versión de 1.20, de Synfacilsyn.
 Se crea el método TXpTreeElements.GetElementAt().
 Se cea el método TFaOpenEvent.Clear().
+Se eliminan algunos mensajes de advertencia al compilar.
 
 1.19
 ====

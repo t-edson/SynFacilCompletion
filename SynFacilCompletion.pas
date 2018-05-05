@@ -219,7 +219,7 @@ type
     //manejo patrones
     procedure ClearBeforePatt;  //limpia el patron anterior
     procedure ClearAfterPatt;   //limpia el patron anterior
-    procedure AddBeforeElement(var befPat: string; var ErrStr: string);
+    procedure AddBeforeElement(var befPat: string; out ErrStr: string);
     procedure AddAfterElement(var aftPat: string; var ErrStr: string);
   public   //Manejo de ítems
     Items : TFaCompletItems;    //Lista de las palabras disponibles para el completado
@@ -648,7 +648,7 @@ function TFaCursorEnviron.ExtractStaticText(var ReplaceSeq: string;
     Result := StringReplace(Result, '\|', '|', [rfReplaceAll]);
     Result := StringReplace(Result, '\\', '\', [rfReplaceAll]);
   end;
-  function FirstPos(substrs: array of string; str: string; var found: string): integer;
+  function FirstPos(substrs: array of string; str: string; out found: string): integer;
   {Busca la ocurrencia de cualquiera de las cadenas dadas en "substrs". Devuelve el índice
    a la primera encontrada. Si no enceuntra ninguna, devuelve 0.}
   var
@@ -1004,7 +1004,7 @@ begin
     exit;
   end;
 end;
-procedure TFaOpenEvent.AddBeforeElement(var befPat: string; var ErrStr: string);
+procedure TFaOpenEvent.AddBeforeElement(var befPat: string; out ErrStr: string);
 {Agrega un elemento al patrón anterior. Si encuentra error devuelve el mensaje en ErrStr}
 var
   patEle: ^TFaPatternElement;
