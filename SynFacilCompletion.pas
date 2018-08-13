@@ -1107,8 +1107,12 @@ var
   Cancel: boolean;
 begin
   if OnLoadItems<>nil then begin
-     OnLoadItems(self, curEnv, Cancel);
-     if Cancel then exit;
+    //Hay evento configruado para llenar dinámciamente los ítems
+    OnLoadItems(self, curEnv, Cancel);
+    {$IFDEF Verbose}
+    debugln(' LLenado dinámico de ítems con %d elem.', [items.Count]);
+    {$ENDIF}
+    if Cancel then exit;
   end;
   case filter of
   fil_None: begin  //no hay filtro
@@ -1228,7 +1232,7 @@ begin
   Result := MatchPatternBefore(curEnv) and
             MatchPatternAfter(curEnv) and ItemInBlock;
   {$IFDEF Verbose}
-  if Result then debugln(' -> Aplicable Pat:'+ name);
+  if Result then debugln(' -> Aplicable Pat: %s con %d elem.', [name, items.Count]);
   {$ENDIF}
 end;
 procedure TFaOpenEvent.AddItem(txt: string; idxIcon: integer);
@@ -2014,9 +2018,6 @@ procedure TSynFacilComplet.KeyUp(Sender: TObject; var Key: Word;
  el estado final del editor
  Este evento solo se ejecutará una vez antes de abrir la ventana de autocompletado}
 begin
-  {$IFDEF Verbose}
-  debugln('--KeyUp:' + IntToStr(key));
-  {$ENDIF}
   if not CompletionOn then exit;
   if not OpenOnKeyUp then exit;
   if not SearchOnKeyUp then begin
@@ -2098,6 +2099,7 @@ begin
   CompletionOn := true;  //activo por defecto
   SelectOnEnter := true;
   UtfKey := '';   //limpia
+  SearchOnKeyUp := true;  //Para iniciar la búsqueda
 end;
 destructor TSynFacilComplet.Destroy;
 begin

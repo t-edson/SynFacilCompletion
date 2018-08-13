@@ -1,3 +1,7 @@
+1.21 13/08/2018
+====
+Se corrige la inicialización de la bandera "SearchOnKeyUp".
+
 1.20
 ====
 Se crea la versión para nivelarse con la versión de 1.20, de Synfacilsyn.
