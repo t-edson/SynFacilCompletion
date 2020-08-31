@@ -278,6 +278,7 @@ type
   private  //Manejo de patrones de apertura
     CompletLists: TFaCompletionLists;  //colección de listas de compleatdo
     function FindOpenEventMatching: TFaOpenEvent;
+    function GetIconList: TImageList;
     procedure ProcXMLOpenOn(nodo: TDOMNode);
     procedure SetIconList(AValue: TImageList);
   public   //Manejo de patrones de apertura
@@ -289,7 +290,7 @@ type
     SelectOnEnter: boolean; //habilita la selección con enter
     CaseSensComp: boolean;  //Uso de caja, en autocompletado
     OpenOnKeyUp: boolean;   //habilita que se abra automáticamente al soltar una tecla
-    property IconList: TImageList read MenuComplet.IconList write SetIconList;
+    property IconList: TImageList read GetIconList write SetIconList;
     function AddOpenEvent(AfterPattern, BeforePattern: string;
       filter: TFaFilterList): TFaOpenEvent;
     function AddComplList(lstName: string): TFaCompletionList;
@@ -1847,6 +1848,10 @@ begin
     end;
   end;
   exit(nil);   //no enccontró
+end;
+function TSynFacilComplet.GetIconList: TImageList;
+begin
+  Exit(MenuComplet.IconList);
 end;
 procedure TSynFacilComplet.MenuComplet_OnExecute(Sender: TObject);
 {Este evento se genera antes de abrir el menú de completado.
