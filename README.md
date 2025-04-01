@@ -5,7 +5,7 @@ Scriptable Highlighter with code-completion for the SynEdit Component of Lazarus
 
 ![SynFacilCompletion](http://blog.pucp.edu.pe/blog/tito/wp-content/uploads/sites/610/2014/09/synfacilcomplet1.png "Título de la imagen")
 
-This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and includes all his options, and others special for defining the code-completion feature.
+This highlighter is based on the highlighter https://github.com/t-edson/SynFacilSyn , and includes all its options, and others special for defining the code-completion feature.
 
 This library works in the same way that the SynFacilSyn library works. It uses a XML file to define the syntax, and additionally, the words for the completion code.
  
